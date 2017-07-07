@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import okhttp3.Call;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -107,7 +108,10 @@ public class OkHttpBaseRequest implements BaseRequest {
                 }
                 Request request = requestBuilder.build();
                 try {
-                    Response response = mClient.getHttpClient().newCall(request).execute();
+                    Call call = mClient.getHttpClient().newCall(request);
+                    mClient.putCall(tag,call);
+                    Response response = call.execute();
+                    mClient.cancelCall(tag);
                     if(!response.isSuccessful()){
                         subscriber.onError(new IOException("Unexpected code:" +response));
                     }
