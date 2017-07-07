@@ -1,6 +1,8 @@
 package com.commlibary.http.okHttp;
 
 
+import android.app.Activity;
+import android.app.Fragment;
 import android.util.Log;
 
 import com.commlibary.http.BaseRequest;
@@ -27,6 +29,8 @@ public class OkHttpBaseRequest implements BaseRequest {
     protected String mMethod;
     protected String mUrl;
     protected MultipartBody multipartBody;
+    protected Object tag;
+
 
     public OkHttpBaseRequest(){
         mClient = HttpClient.getInstance();
@@ -90,6 +94,9 @@ public class OkHttpBaseRequest implements BaseRequest {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 Request.Builder requestBuilder = new Request.Builder().url(mUrl);
+                if(tag!=null){
+                    requestBuilder.tag(tag);
+                }
                 if(mMethod.equals("POST")){
                     if(multipartBody!=null){
                         requestBuilder.method(mMethod,multipartBody);
@@ -110,5 +117,18 @@ public class OkHttpBaseRequest implements BaseRequest {
                 }
             }
         });
+    }
+
+    @Override
+    public BaseRequest tag(Object tag) {
+        if(tag instanceof Activity){
+            Activity activity = (Activity) tag;
+            this.tag = activity.getClass();
+        }
+        if(tag instanceof Fragment){
+            Fragment fragment = (Fragment) tag;
+            this.tag = fragment.getActivity().getClass();
+        }
+        return this;
     }
 }

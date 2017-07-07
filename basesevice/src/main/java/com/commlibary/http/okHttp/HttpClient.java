@@ -35,4 +35,5 @@ public class HttpClient {
     public OkHttpClient getHttpClient(){
         return client;
     }
+
 }

@@ -75,6 +75,7 @@ public class OpsRequest<Q,E> {
     }
 
     public void execute(final ResponseListener<E> listener,Object tag){
+        request.tag(tag);
         request.execute(new GsonParser<ResponseObject<E>>(mResponseType))
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<ResponseObject<E>>() {
             @Override

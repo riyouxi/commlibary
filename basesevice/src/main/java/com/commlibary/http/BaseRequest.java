@@ -72,5 +72,10 @@ public interface BaseRequest {
      */
     <T extends Parser<T>> Observable<String> execute();
 
+    /**
+     * tag
+     * */
+    BaseRequest tag(Object tag);
+
 
 }
