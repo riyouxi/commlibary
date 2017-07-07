@@ -3,6 +3,7 @@ package com.commlibary.http.okHttp;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.text.TextUtils;
 import android.util.Log;
 
 import com.commlibary.http.BaseRequest;
@@ -95,7 +96,7 @@ public class OkHttpBaseRequest implements BaseRequest {
             @Override
             public void call(Subscriber<? super String> subscriber) {
                 Request.Builder requestBuilder = new Request.Builder().url(mUrl);
-                if(tag!=null){
+                if(tag!=null && tag.equals("")){
                     requestBuilder.tag(tag);
                 }
                 if(mMethod.equals("POST")){
@@ -109,9 +110,15 @@ public class OkHttpBaseRequest implements BaseRequest {
                 Request request = requestBuilder.build();
                 try {
                     Call call = mClient.getHttpClient().newCall(request);
-                    mClient.putCall(tag,call);
+                    if(tag!=null && tag.equals("")){
+                        mClient.putCall(tag,call);
+                    }
+                    //发起请求
                     Response response = call.execute();
-                    mClient.cancelCall(tag);
+
+                    if(tag!=null && tag.equals("")) {
+                        mClient.cancelCall(tag);
+                    }
                     if(!response.isSuccessful()){
                         subscriber.onError(new IOException("Unexpected code:" +response));
                     }
