@@ -124,8 +124,7 @@ public class OkHttpBaseRequest implements BaseRequest {
         if(tag instanceof Activity){
             Activity activity = (Activity) tag;
             this.tag = activity.getClass();
-        }
-        if(tag instanceof Fragment){
+        }else if(tag instanceof Fragment){
             Fragment fragment = (Fragment) tag;
             this.tag = fragment.getActivity().getClass();
         }
