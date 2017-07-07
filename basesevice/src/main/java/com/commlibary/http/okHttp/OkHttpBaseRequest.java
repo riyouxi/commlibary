@@ -1,6 +1,8 @@
 package com.commlibary.http.okHttp;
 
 
+import android.util.Log;
+
 import com.commlibary.http.BaseRequest;
 import com.commlibary.http.Parser;
 
@@ -102,7 +104,7 @@ public class OkHttpBaseRequest implements BaseRequest {
                     if(!response.isSuccessful()){
                         subscriber.onError(new IOException("Unexpected code:" +response));
                     }
-                    subscriber.onNext(response.body().toString());
+                    subscriber.onNext(response.body().string());
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

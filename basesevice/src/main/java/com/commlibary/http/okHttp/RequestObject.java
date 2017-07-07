@@ -1,10 +1,6 @@
 package com.commlibary.http.okHttp;
 
 
-/**
- * Author：Liuyang on 16/9/5.
- * Mail：liuy04@shishike.com
- */
 
 public class RequestObject<T> {
     private T content;
