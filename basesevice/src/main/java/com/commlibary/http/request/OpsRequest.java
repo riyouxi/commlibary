@@ -1,9 +1,8 @@
-package com.commlibary.http;
+package com.commlibary.http.request;
 
 
-import android.animation.TypeEvaluator;
-import android.text.AndroidCharacter;
-
+import com.commlibary.http.response.ResponseListener;
+import com.commlibary.http.response.ResponseObject;
 import com.commlibary.http.okHttp.GsonRequest;
 import com.commlibary.http.okHttp.OkHttpGsonRequest;
 import com.commlibary.http.okHttp.RequestObject;
@@ -74,8 +73,7 @@ public class OpsRequest<Q,E> {
         return this;
     }
 
-    public void execute(final ResponseListener<E> listener,Object tag){
-        request.tag(tag);
+    public void execute(final ResponseListener<E> listener, Object tag){
         request.execute(new GsonParser<ResponseObject<E>>(mResponseType))
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<ResponseObject<E>>() {
             @Override

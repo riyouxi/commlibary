@@ -1,7 +1,7 @@
 package com.commlibary.http.okHttp;
 
 
-import com.commlibary.http.Parser;
+import com.commlibary.http.request.Parser;
 import com.commlibary.utils.Gsons;
 import com.google.gson.Gson;
 

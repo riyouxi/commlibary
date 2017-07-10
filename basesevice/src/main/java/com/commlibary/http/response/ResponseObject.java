@@ -1,4 +1,4 @@
-package com.commlibary.http;
+package com.commlibary.http.response;
 
 import com.google.gson.annotations.SerializedName;
 

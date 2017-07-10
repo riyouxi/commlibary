@@ -1,8 +1,8 @@
 package com.commlibary.http.okHttp;
 
 
-import com.commlibary.http.BaseRequest;
-import com.commlibary.http.Parser;
+import com.commlibary.http.request.BaseRequest;
+import com.commlibary.http.request.Parser;
 
 import rx.Observable;
 
