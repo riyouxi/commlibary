@@ -50,7 +50,7 @@ public class FileRequest {
                     @Override
                     public void call(String str) {
                         ResponseObject<String> response = new ResponseObject<>();
-                        response.setContent(str);
+                        response.setResult(str);
                         listener.onResponse(response);
                     }
                 }, new Action1<Throwable>() {
