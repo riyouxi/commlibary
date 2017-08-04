@@ -40,4 +40,5 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile project(path: ':basesevice')
     compile 'org.greenrobot:greendao:3.2.0'
+    compile 'com.github.riyouxi:sslc_http:v1.1'
 }
