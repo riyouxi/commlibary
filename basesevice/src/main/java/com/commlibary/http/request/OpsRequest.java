@@ -55,7 +55,7 @@ public class OpsRequest<Q,E> {
 
     public OpsRequest<Q,E> requestValue(Q requestContent){
         this.mRequestContent = requestContent;
-        request.setBody(mGson.toJson(RequestObject.create(this.mRequestContent)));
+        request.setBody(mGson.toJson(mRequestContent));
         return this;
     }
 

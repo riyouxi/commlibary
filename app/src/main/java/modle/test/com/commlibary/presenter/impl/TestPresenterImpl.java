@@ -29,7 +29,7 @@ public class TestPresenterImpl implements ITestPresenter {
         ops.requestValue(aq).responseClass(Areponse.class).execute(new ResponseListener<Areponse>() {
             @Override
             public void onResponse(ResponseObject<Areponse> reponse) {
-                mIshowView.showValue(reponse.getContent());
+                mIshowView.showValue(reponse.getResult());
             }
 
             @Override

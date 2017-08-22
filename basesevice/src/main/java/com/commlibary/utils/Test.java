@@ -2,6 +2,10 @@ package com.commlibary.utils;
 
 
 import android.graphics.Bitmap;
+import android.provider.Settings;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import rx.Observable;
 import rx.Observer;
@@ -14,19 +18,32 @@ public class Test {
 
     public static void main(String[] args){
 
-        String [] names={"A","B"};
-        Observable.from(names).flatMap(new Func1<String, Observable<Integer>>() {
+        Subscriber<String> sb = new Subscriber<String>() {
             @Override
-            public Observable<Integer> call(String s) {
-                return null;
-            }
-        }).subscribeOn(Schedulers.newThread())
-                .subscribe(new Action1<Integer>() {
-            @Override
-            public void call(Integer integer) {
+            public void onCompleted() {
 
             }
-        });
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onNext(String s) {
+                System.out.print(s);
+            }
+        };
+
+        List<String> temp = new ArrayList<>();
+        temp.add("A");
+        temp.add("B");
+        Observable.from(temp).subscribe(sb);
+
+        String tempstr = "23.15955";
+        System.out.print(Float.valueOf(tempstr));
+
+
 
 //        Observable.just("bbb").map(new Func1<String, Integer>() {
 //            @Override
@@ -40,20 +57,7 @@ public class Test {
 //            }
 //        });
 
-        Observable ob = Observable.create(new Observable.OnSubscribe<String>() {
-            @Override
-            public void call(Subscriber<? super String> subscriber) {
-                subscriber.onNext("aaa");
-            }
 
-
-        });
-        ob.subscribe(new Action1() {
-            @Override
-            public void call(Object o) {
-                System.out.print(o);
-            }
-        });
 
 
 

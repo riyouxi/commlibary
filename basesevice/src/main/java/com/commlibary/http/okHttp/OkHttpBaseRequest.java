@@ -101,6 +101,7 @@ public class OkHttpBaseRequest implements BaseRequest {
                         requestBuilder.method(mMethod,requestBody);
                     }
                 }
+
                 Request request = requestBuilder.build();
                 try {
                     Response response = mClient.getHttpClient().newCall(request).execute();

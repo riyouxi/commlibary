@@ -8,6 +8,10 @@ import com.commlibary.http.request.OpsRequest;
 import com.commlibary.http.response.ResponseListener;
 import com.commlibary.http.response.ResponseObject;
 
+import modle.test.com.commlibary.entity.GpsReq;
+import modle.test.com.commlibary.entity.GpsResp;
+import modle.test.com.commlibary.entity.LoginReq;
+import modle.test.com.commlibary.entity.LoginResp;
 import modle.test.com.commlibary.presenter.impl.TestPresenterImpl;
 
 public class MainActivity extends AppCompatActivity implements IShowView {
@@ -17,12 +21,31 @@ public class MainActivity extends AppCompatActivity implements IShowView {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         TestPresenterImpl testPresenter = new TestPresenterImpl(MainActivity.this,this);
-        testPresenter.loadData();
-        OpsRequest<Arequest,Areponse> request= OpsRequest.createGet("http://119.23.134.46:8091/v1/");
-        Arequest are = new Arequest();
-        request.requestValue(are).responseClass(Areponse.class).execute(new ResponseListener<Areponse>() {
+       // testPresenter.loadData();
+//        LoginReq re = new LoginReq();
+//        re.setUserName("user1");
+//        re.setPassword("user1");
+//        re.setLoginType("herdsman");
+//        OpsRequest<LoginReq,LoginResp> request= OpsRequest.createPost(ServerHttpUrl.getLoginUrl());
+//        request.requestValue(re).responseClass(LoginResp.class).execute(new ResponseListener<LoginResp>() {
+//            @Override
+//            public void onResponse(ResponseObject<LoginResp> reponse) {
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception error) {
+//
+//            }
+//        },"");
+
+        GpsReq req = new GpsReq();
+        req.setToken("MTUwMzI4MTQyNjM2Nl8xX2hlcmRzbWFu");
+
+        OpsRequest<GpsReq,GpsResp> request = OpsRequest.createPost(ServerHttpUrl.getGpsList());
+        request.requestValue(req).responseClass(GpsResp.class).execute(new ResponseListener<GpsResp>() {
             @Override
-            public void onResponse(ResponseObject<Areponse> reponse) {
+            public void onResponse(ResponseObject<GpsResp> reponse) {
 
             }
 
