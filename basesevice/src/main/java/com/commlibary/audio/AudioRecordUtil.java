@@ -74,7 +74,10 @@ public class AudioRecordUtil {
      * */
     public void createAudioRecord(){
         bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz,channelConfig,audioFormat);
-        audioRecord = new AudioRecord(audioSource,sampleRateInHz,channelConfig,audioFormat,bufferSizeInBytes);
+        if(audioRecord == null){
+            audioRecord = new AudioRecord(audioSource,sampleRateInHz,channelConfig,audioFormat,bufferSizeInBytes);
+        }
+
     }
 
     /**
@@ -90,7 +93,7 @@ public class AudioRecordUtil {
      * 停止音频
      *
      * */
-    private void stopRecord(){
+    public void stopRecord(){
         if(audioRecord!=null){
             isRecord = false;
             audioRecord.stop();

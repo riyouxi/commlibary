@@ -1,1 +1,1 @@
-include ':app', ':basesevice'
+include ':app', ':basesevice', ':uinttest'
