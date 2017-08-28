@@ -73,6 +73,11 @@ public class OpsRequest<Q,E> {
         return this;
     }
 
+    public OpsRequest<Q,E> addHeader(String key,String value){
+        request.addHeader(key,value);
+        return this;
+    }
+
     public void execute(final ResponseListener<E> listener, Object tag){
         request.execute(new GsonParser<ResponseObject<E>>(mResponseType))
                 .subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<ResponseObject<E>>() {

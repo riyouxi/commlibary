@@ -12,6 +12,8 @@ public class GpsBean implements Serializable {
 
     private String imei;
 
+    private User user;
+
     public String getNeckletName() {
         return neckletName;
     }
@@ -27,4 +29,13 @@ public class GpsBean implements Serializable {
     public void setImei(String imei) {
         this.imei = imei;
     }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
 }
+

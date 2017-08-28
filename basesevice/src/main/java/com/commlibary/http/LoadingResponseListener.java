@@ -17,6 +17,7 @@ public class LoadingResponseListener<T> implements ResponseListener<T> {
     public  LoadingResponseListener(ResponseListener<T> listener,Context context){
         mListener = listener;
         mContext = context;
+        showLoadingDialog();
 
     }
 
@@ -40,11 +41,11 @@ public class LoadingResponseListener<T> implements ResponseListener<T> {
         mListener.onError(error);
     }
 
-    public static <T> ResponseListener<T> ensure(ResponseListener<T> listener, Context fragmentManager) {
+    public static <T> ResponseListener<T> ensure(ResponseListener<T> listener, Context context) {
         if (listener instanceof LoadingResponseListener) {
             return listener;
         }
-        return new LoadingResponseListener<T>(listener, fragmentManager);
+        return new LoadingResponseListener<T>(listener, context);
     }
 
 }

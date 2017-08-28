@@ -6,6 +6,7 @@ import android.provider.Settings;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import rx.Observable;
 import rx.Observer;
@@ -58,10 +59,14 @@ public class Test {
 //        });
 
 
+        List<Random> a = getValue(Random.class);
 
 
 
+    }
 
+    private static <T> List<T>getValue(Class<T> cls){
+        return null;
     }
 
 
