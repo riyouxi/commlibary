@@ -26,16 +26,6 @@ public class TestPresenterImpl implements ITestPresenter {
         Arequest aq = new Arequest();
         aq.setCardno("1212122");
         aq.setKey("78aac33babed4df27af43d30352c974c");
-        ops.requestValue(aq).responseClass(Areponse.class).execute(new ResponseListener<Areponse>() {
-            @Override
-            public void onResponse(ResponseObject<Areponse> reponse) {
-                mIshowView.showValue(reponse.getResult());
-            }
-
-            @Override
-            public void onError(Exception error) {
-
-            }
-        },"");
+//
     }
 }
