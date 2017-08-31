@@ -5,6 +5,8 @@ import android.media.MediaCodecInfo;
 import android.media.MediaFormat;
 import android.util.Log;
 
+import com.commlibary.audio.api.audio.AudioPlayer;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -21,6 +23,8 @@ public class AACDecoderUtil {
     //用来记录解码失败的帧数
     private int count = 0;
 
+    private AudioPlayer mAudioPalyer;
+
     /**
      * 初始化所有变量
      */
@@ -35,8 +39,8 @@ public class AACDecoderUtil {
      */
     public boolean prepare() {
         // 初始化AudioTrack
-        //mPlayer = new MyAudioTrack(KEY_SAMPLE_RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
-        //mPlayer.init();
+        mAudioPalyer = new AudioPlayer();
+        mAudioPalyer.startPlayer();
         try {
             //需要解码数据的类型
             String mine = "audio/mp4a-latm";
@@ -51,15 +55,9 @@ public class AACDecoderUtil {
             //采样率
             mediaFormat.setInteger(MediaFormat.KEY_SAMPLE_RATE, KEY_SAMPLE_RATE);
             //比特率
-            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 128000);
-            //用来标记AAC是否有adts头，1->有
-            mediaFormat.setInteger(MediaFormat.KEY_IS_ADTS, 1);
+            mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, 96000);
             //用来标记aac的类型
             mediaFormat.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
-            //ByteBuffer key（暂时不了解该参数的含义，但必须设置）
-            byte[] data = new byte[]{(byte) 0x11, (byte) 0x90};
-            ByteBuffer csd_0 = ByteBuffer.wrap(data);
-            mediaFormat.setByteBuffer("csd-0", csd_0);
             //解码器配置
             mDecoder.configure(mediaFormat, null, null, 0);
         } catch (IOException e) {
@@ -85,7 +83,7 @@ public class AACDecoderUtil {
         long kTimeOutUs = 0;
         try {
             //返回一个包含有效数据的input buffer的index,-1->不存在
-            int inputBufIndex = mDecoder.dequeueInputBuffer(kTimeOutUs);
+            int inputBufIndex = mDecoder.dequeueInputBuffer(-1);
             if (inputBufIndex >= 0) {
                 //获取当前的ByteBuffer
                 ByteBuffer dstBuf = codecInputBuffers[inputBufIndex];
@@ -99,7 +97,7 @@ public class AACDecoderUtil {
             //编解码器缓冲区
             MediaCodec.BufferInfo info = new MediaCodec.BufferInfo();
             //返回一个output buffer的index，-1->不存在
-            int outputBufferIndex = mDecoder.dequeueOutputBuffer(info, kTimeOutUs);
+            int outputBufferIndex = mDecoder.dequeueOutputBuffer(info, 10000);
 
             if (outputBufferIndex < 0) {
                 //记录解码失败的次数
@@ -111,11 +109,12 @@ public class AACDecoderUtil {
                 outputBuffer = codecOutputBuffers[outputBufferIndex];
                 //用来保存解码后的数据
                 byte[] outData = new byte[info.size];
+                Log.d(TAG, "decode retrieve frame " + info.size);
                 outputBuffer.get(outData);
                 //清空缓存
                 outputBuffer.clear();
                 //播放解码后的数据
-              //  mPlayer.playAudioTrack(outData, 0, info.size);
+                mAudioPalyer.play(outData, 0, info.size);
                 //释放已经解码的buffer
                 mDecoder.releaseOutputBuffer(outputBufferIndex, false);
                 //解码未解完的数据

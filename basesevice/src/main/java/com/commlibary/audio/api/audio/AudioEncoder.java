@@ -61,8 +61,8 @@ public class AudioEncoder {
             MediaFormat format = new MediaFormat();
             format.setString(MediaFormat.KEY_MIME, DEFAULT_MIME_TYPE);
             format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, channels);
+            format.setInteger(MediaFormat.KEY_BIT_RATE, 96000);//比特率
             format.setInteger(MediaFormat.KEY_SAMPLE_RATE, samplerate);
-            format.setInteger(MediaFormat.KEY_BIT_RATE, bitrate);
             format.setInteger(MediaFormat.KEY_AAC_PROFILE, DEFAULT_PROFILE_LEVEL);
             format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxBufferSize);
             mMediaCodec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
@@ -119,10 +119,40 @@ public class AudioEncoder {
         return true;
     }
 
-    public synchronized boolean retrieve() {
+//    public synchronized boolean retrieve() {
+//        Log.d(TAG, "encode retrieve +");
+//        if (!mIsOpened) {
+//            return false;
+//        }
+//
+//        try {
+//            ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
+//            MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
+//            int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 1000);
+//            if (outputBufferIndex >= 0) {
+//                Log.d(TAG, "encode retrieve frame  " + bufferInfo.size);
+//                ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
+//                outputBuffer.position(bufferInfo.offset);
+//                outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
+//                byte[] frame = new byte[bufferInfo.size];
+//                outputBuffer.get(frame, 0, bufferInfo.size);
+//                if (mAudioEncodedListener != null) {
+//                    mAudioEncodedListener.onFrameEncoded(frame, bufferInfo.presentationTimeUs);
+//                }
+//                mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
+//            }
+//        } catch (Throwable t) {
+//            t.printStackTrace();
+//            return false;
+//        }
+//        Log.d(TAG, "encode retrieve -");
+//        return true;
+//    }
+
+    public synchronized byte[] retrieve() {
         Log.d(TAG, "encode retrieve +");
         if (!mIsOpened) {
-            return false;
+            return null;
         }
 
         try {
@@ -140,12 +170,13 @@ public class AudioEncoder {
                     mAudioEncodedListener.onFrameEncoded(frame, bufferInfo.presentationTimeUs);
                 }
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
+                return  frame;
             }
         } catch (Throwable t) {
             t.printStackTrace();
-            return false;
+            return null;
         }
         Log.d(TAG, "encode retrieve -");
-        return true;
+        return null;
     }
 }

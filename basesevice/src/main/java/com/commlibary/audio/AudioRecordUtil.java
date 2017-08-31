@@ -111,6 +111,17 @@ public class AudioRecordUtil {
         }
     }
 
+
+    public interface AudioCallBack{
+
+        public void audioData(byte[]data);
+    }
+
+    AudioCallBack mCallBack;
+
+    public void setAudioListner(AudioCallBack vCallBack){
+        this.mCallBack = vCallBack;
+    }
     /**
      * 这里将数据写入文件，但是并不能播放，因为AudioRecord获得的音频是原始的裸音频，
      * 如果需要播放就必须加入一些格式或者编码的头信息。但是这样的好处就是你可以对音频的 裸数据进行处理，比如你要做一个爱说话的TOM
@@ -130,6 +141,9 @@ public class AudioRecordUtil {
         while(isRecord){
             readSize = audioRecord.read(audioData,0,bufferSizeInBytes);
             if(AudioRecord.ERROR_INVALID_OPERATION != readSize){
+                if(mCallBack!=null){
+                    mCallBack.audioData(audioData);
+                }
                 fos.write(audioData);
             }
         }

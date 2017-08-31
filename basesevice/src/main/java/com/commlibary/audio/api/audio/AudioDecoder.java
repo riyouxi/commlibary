@@ -29,7 +29,7 @@ public class AudioDecoder {
     private static final String TAG = AudioDecoder.class.getSimpleName();
 
     private static final String DEFAULT_MIME_TYPE = "audio/mp4a-latm";
-    private static final int DEFAULT_CHANNEL_NUM = 1;
+    private static final int DEFAULT_CHANNEL_NUM = 2;
     private static final int DEFAULT_SAMPLE_RATE = 44100;
     private static final int DEFAULT_MAX_BUFFER_SIZE = 16384;
 
@@ -61,6 +61,7 @@ public class AudioDecoder {
             format.setString(MediaFormat.KEY_MIME, DEFAULT_MIME_TYPE);
             format.setInteger(MediaFormat.KEY_CHANNEL_COUNT, channels);
             format.setInteger(MediaFormat.KEY_SAMPLE_RATE, samplerate);
+            format.setInteger(MediaFormat.KEY_BIT_RATE, 96000);//比特率
             format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
             format.setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, maxBufferSize);
             mMediaCodec.configure(format, null, null, 0);
@@ -95,42 +96,27 @@ public class AudioDecoder {
     }
 
     public synchronized boolean decode(byte[] input, long presentationTimeUs) {
-        Log.d(TAG, "decode: " + presentationTimeUs);
         if (!mIsOpened) {
             return false;
         }
 
         try {
             ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-            int inputBufferIndex = mMediaCodec.dequeueInputBuffer(1000);
+            int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
             if (inputBufferIndex >= 0) {
                 ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                 inputBuffer.clear();
                 inputBuffer.put(input);
-                if (mIsFirstFrame) {
-                    /**
-                     * Some formats, notably AAC audio and MPEG4, H.264 and H.265 video formats
-                     * require the actual data to be prefixed by a number of buffers containing
-                     * setup data, or codec specific data. When processing such compressed formats,
-                     * this data must be submitted to the codec after start() and before any frame data.
-                     * Such data must be marked using the flag BUFFER_FLAG_CODEC_CONFIG in a call to queueInputBuffer.
-                     */
-                    mMediaCodec.queueInputBuffer(inputBufferIndex, 0, input.length, presentationTimeUs, MediaCodec.BUFFER_FLAG_CODEC_CONFIG);
-                    mIsFirstFrame = false;
-                } else {
-                    mMediaCodec.queueInputBuffer(inputBufferIndex, 0, input.length, presentationTimeUs, 0);
-                }
+                mMediaCodec.queueInputBuffer(inputBufferIndex, 0, input.length, 0, 0);
             }
         } catch (Throwable t) {
             t.printStackTrace();
             return false;
         }
-        Log.d(TAG, "decode -");
         return false;
     }
 
     public synchronized boolean retrieve() {
-        Log.d(TAG, "decode retrieve +");
         if (!mIsOpened) {
             return false;
         }
@@ -139,21 +125,26 @@ public class AudioDecoder {
             ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 1000);
+            Log.d(TAG, "decode retrieve frame " + outputBufferIndex);
+
             if (outputBufferIndex >= 0) {
                 Log.d(TAG, "decode retrieve frame " + bufferInfo.size);
                 ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
                 byte[] outData = new byte[bufferInfo.size];
                 outputBuffer.get(outData);
-                if (mAudioDecodedListener != null) {
-                    mAudioDecodedListener.onFrameDecoded(outData, bufferInfo.presentationTimeUs);
+                if(outputBuffer.position()>0){
+                    if (mAudioDecodedListener != null) {
+                        mAudioDecodedListener.onFrameDecoded(outData, bufferInfo.presentationTimeUs);
+                    }
                 }
+
+                Log.d(TAG, " " + outData.toString());
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
             }
         } catch (Throwable t) {
             t.printStackTrace();
             return false;
         }
-        Log.d(TAG, "decode retrieve -");
         return true;
     }
 }
