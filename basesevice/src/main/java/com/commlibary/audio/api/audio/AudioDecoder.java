@@ -31,7 +31,7 @@ public class AudioDecoder {
     private static final String DEFAULT_MIME_TYPE = "audio/mp4a-latm";
     private static final int DEFAULT_CHANNEL_NUM = 2;
     private static final int DEFAULT_SAMPLE_RATE = 44100;
-    private static final int DEFAULT_MAX_BUFFER_SIZE = 16384;
+    private static final int DEFAULT_MAX_BUFFER_SIZE = 1024*2;
 
     private MediaCodec mMediaCodec;
     private OnAudioDecodedListener mAudioDecodedListener;
@@ -95,7 +95,8 @@ public class AudioDecoder {
         mAudioDecodedListener = listener;
     }
 
-    public synchronized boolean decode(byte[] input, long presentationTimeUs) {
+    public synchronized boolean decode(byte[] input, int length) {
+        Log.e("解码之前的数据：",bytesToHexString(input));
         if (!mIsOpened) {
             return false;
         }
@@ -106,10 +107,11 @@ public class AudioDecoder {
             if (inputBufferIndex >= 0) {
                 ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                 inputBuffer.clear();
-                inputBuffer.put(input);
-                mMediaCodec.queueInputBuffer(inputBufferIndex, 0, input.length, 0, 0);
+                inputBuffer.put(input,0,length);
+                mMediaCodec.queueInputBuffer(inputBufferIndex, 0, length, 0, 0);
             }
         } catch (Throwable t) {
+            Log.e("异常",t.toString());
             t.printStackTrace();
             return false;
         }
@@ -125,26 +127,41 @@ public class AudioDecoder {
             ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
             int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 1000);
-            Log.d(TAG, "decode retrieve frame " + outputBufferIndex);
 
             if (outputBufferIndex >= 0) {
                 Log.d(TAG, "decode retrieve frame " + bufferInfo.size);
                 ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
                 byte[] outData = new byte[bufferInfo.size];
                 outputBuffer.get(outData);
-                if(outputBuffer.position()>0){
-                    if (mAudioDecodedListener != null) {
-                        mAudioDecodedListener.onFrameDecoded(outData, bufferInfo.presentationTimeUs);
-                    }
+                Log.e("解码后的数据：",bytesToHexString(outData));
+                if (mAudioDecodedListener != null) {
+                    mAudioDecodedListener.onFrameDecoded(outData, bufferInfo.presentationTimeUs);
                 }
 
                 Log.d(TAG, " " + outData.toString());
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
             }
         } catch (Throwable t) {
+            Log.e("异常",t.toString());
             t.printStackTrace();
             return false;
         }
         return true;
+    }
+
+    public static String bytesToHexString(byte[] src) {
+        StringBuilder stringBuilder = new StringBuilder("");
+        if (src == null || src.length <= 0) {
+            return null;
+        }
+        for (int i = 0; i < src.length; i++) {
+            int v = src[i] & 0xFF;
+            String hv = Integer.toHexString(v);
+            if (hv.length() < 2) {
+                stringBuilder.append(0);
+            }
+            stringBuilder.append(hv);
+        }
+        return stringBuilder.toString();
     }
 }

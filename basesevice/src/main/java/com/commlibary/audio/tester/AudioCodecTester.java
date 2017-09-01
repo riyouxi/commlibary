@@ -51,7 +51,7 @@ public class AudioCodecTester extends Tester implements AudioCapturer.OnAudioFra
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-        mAudioDecoder.decode(encoded, presentationTimeUs);
+       // mAudioDecoder.decode(encoded, presentationTimeUs);
     }
 
     private Runnable mEncodeRenderRunnable = new Runnable() {

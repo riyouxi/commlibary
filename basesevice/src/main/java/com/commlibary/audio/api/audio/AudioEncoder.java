@@ -29,11 +29,11 @@ public class AudioEncoder {
     private static final String TAG = AudioEncoder.class.getSimpleName();
 
     private static final String DEFAULT_MIME_TYPE = "audio/mp4a-latm";
-    private static final int DEFAULT_CHANNEL_NUM = 1;
+    private static final int DEFAULT_CHANNEL_NUM = 2;
     private static final int DEFAULT_SAMPLE_RATE = 44100;
-    private static final int DEFAULT_BITRATE = 128 * 1000; //AAC-LC, 64 *1024 for AAC-HE
+    private static final int DEFAULT_BITRATE = 96000; //AAC-LC, 64 *1024 for AAC-HE
     private static final int DEFAULT_PROFILE_LEVEL = MediaCodecInfo.CodecProfileLevel.AACObjectLC;
-    private static final int DEFAULT_MAX_BUFFER_SIZE = 16384;
+    private static final int DEFAULT_MAX_BUFFER_SIZE = 10*1024;
 
     private MediaCodec mMediaCodec;
     private OnAudioEncodedListener mAudioEncodedListener;

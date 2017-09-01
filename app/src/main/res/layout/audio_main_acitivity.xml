@@ -22,5 +22,11 @@
         android:layout_height="wrap_content"
         android:text="开始播放"/>
 
+    <Button
+        android:id="@+id/other"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="录播"/>
+
 
 </LinearLayout>

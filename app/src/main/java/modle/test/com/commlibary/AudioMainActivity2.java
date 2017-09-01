@@ -25,6 +25,7 @@ import com.commlibary.audio.tester.AudioCodecTester;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -42,7 +43,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         AudioEncoder.OnAudioEncodedListener, AudioDecoder.OnAudioDecodedListener {
 
     private boolean granted;
-    private Button mStart, mEnd, mStartPlay;
+    private Button mStart, mEnd, mStartPlay,mOther;
     private AudioEncoder mAudioEncoder;
     private AudioDecoder mAudioDecoder;
     private AudioCapturer mAudioCapturer;
@@ -65,11 +66,9 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
      */
     private static int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
     boolean isStopTalk = false;
-    AudioM audioM; AudioDeco1 audioDecoder = null;
-    private int bufferSize;
 
     private FileOutputStream fos;
-    private BufferedOutputStream bos;
+    private DataOutputStream bos;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -78,6 +77,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mStart = (Button) findViewById(R.id.start);
         mEnd = (Button) findViewById(R.id.stop);
         mStartPlay = (Button) findViewById(R.id.start_paly);
+        mOther = (Button) findViewById(R.id.other);
 
         mAudioCapturer = new AudioCapturer();
         mAudioEncoder = new AudioEncoder();
@@ -86,22 +86,14 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mAudioEncoder.setAudioEncodedListener(this);
         mAudioDecoder.setAudioDecodedListener(this);
         mAudioCapturer.setOnAudioFrameCapturedListener(this);
-        audioM = new AudioM();
 
 
         mStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                AudioRecordUtil.getInstance().startRecord();
-                //isStopTalk = false;
-//                mAudioEncoder.open();
-//                mAudioCapturer.startCapture();
-               // new Thread(mEncodeRenderRunnable).start();
-                //audioM.initAACMediaEncode();
-                // new AudioSend().start();
                 try {
                     fos = new FileOutputStream(new File("/sdcard/new.aac"));
-                    bos = new BufferedOutputStream(fos,2*1024);
+                    bos = new DataOutputStream(fos);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -115,25 +107,27 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mEnd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                //AudioRecordUtil.getInstance().stopRecord();
-//                isStopTalk = true;
                 isStopTalk = false;
                 mAudioCapturer.stopCapture();
-//            new AudioCodecTester().startTesting();
             }
         });
 
         mStartPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // new AudioPlayerTester().startTesting();
                 mAudioPlayer = new AudioPlayer();
-                mAudioDecoder.open();
                 mAudioPlayer.startPlayer();
-               // new AudioCodecTester().startTesting();
+                mAudioDecoder.open();
                 new Thread(readFile).start();
                 new Thread(mDecodeRenderRunnable).start();
 //                new ReadAACFileThread("/sdcard/new.aac").start();
+            }
+        });
+
+        mOther.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new AudioCodecTester().startTesting();
             }
         });
 
@@ -165,15 +159,23 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                     int len = 0;
                     //每次从文件读取的数据
                     byte[] buffer = new byte[2*1024];
-                    BufferedInputStream ins;
-                    ins = new BufferedInputStream(new FileInputStream(file));
-                    while(ins.read(buffer) != -1) {
-                        mAudioDecoder.decode(buffer, 0);
+                    DataInputStream ins;
+                    ins = new DataInputStream(new FileInputStream(file));
+                    while((len = ins.readInt()) != -1) {
+                        int newLen = ins.read(buffer,0,len);
+                        if(len > buffer.length){
+                            Log.e("error","buffer big");
+                        }
+                        if(newLen == len){
+                            mAudioDecoder.decode(buffer, newLen);
+                        }
+
                     }
-                    //mAudioDecoder.decode(buffer, len);
                 } catch (FileNotFoundException e) {
+                    Log.e("异常",e.toString());
                     e.printStackTrace();
                 } catch (IOException e) {
+                    Log.e("异常",e.toString());
                     e.printStackTrace();
                 }
 
@@ -194,7 +196,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
     @Override
     public void onFrameDecoded(byte[] decoded, long presentationTimeUs) {
-        Log.e("test", bytesToHexString(decoded));
+        Log.e("执行播放",bytesToHexString(decoded));
         mAudioPlayer.play(decoded, 0, decoded.length);
     }
 
@@ -208,14 +210,13 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-        System.out.print(encoded);
         try {
+            bos.writeInt(encoded.length);
             bos.write(encoded,0,encoded.length);//BufferOutputStream 将文件保存到内存卡中 *.aac
         } catch (IOException e) {
             e.printStackTrace();
         }
         // mAudioDecoder.decode(encoded, presentationTimeUs);
-        System.out.print("-----------------------------" + encoded);
     }
 
     Socket socket2 = null;
@@ -243,7 +244,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                         // i=0;i<length;i++)audio[i]=(byte)(audio[i]*2);//音频放大1倍
 //                            audioTrack.write(audio, 0, temp.length);// 播放音频数据
                         long presentationTimeUs = (System.nanoTime()) / 1000L;
-                        mAudioDecoder.decode(temp, presentationTimeUs);
+                       // mAudioDecoder.decode(temp, presentationTimeUs);
                         Thread.sleep(300);
                     }
 
@@ -307,7 +308,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                     length = recorder.read(readBuffer, 0, 2*1024);// 从mic读取音频数据
                     if (length > 0) {
                        // os.write(readBuffer, 0, length);// 写入到输出流，把音频数据通过网络发送给对方
-                        audioM.dstAudioFormatFromPCM(readBuffer);
+                      //  audioM.dstAudioFormatFromPCM(readBuffer);
                     }
                 }
                 recorder.stop();
