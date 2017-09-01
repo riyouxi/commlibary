@@ -7,6 +7,7 @@ import android.media.AudioRecord;
 import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
+import android.media.audiofx.LoudnessEnhancer;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
@@ -34,6 +35,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.net.SocketException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Level;
 
 /**
  * Created by shanshan on 2017/8/28.
@@ -70,6 +75,8 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
     private FileOutputStream fos;
     private DataOutputStream bos;
 
+    private List<byte[]> data = new ArrayList<>();
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -100,6 +107,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                 mAudioEncoder.open();
                 new Thread(mEncodeRenderRunnable).start();
                 mAudioCapturer.startCapture();
+                new Thread(upload).start();
 
             }
         });
@@ -118,9 +126,9 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                 mAudioPlayer = new AudioPlayer();
                 mAudioPlayer.startPlayer();
                 mAudioDecoder.open();
-                new Thread(readFile).start();
+//                new Thread(readFile).start();
+                new Thread(new AudioPlayer2()).start();
                 new Thread(mDecodeRenderRunnable).start();
-//                new ReadAACFileThread("/sdcard/new.aac").start();
             }
         });
 
@@ -194,6 +202,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
     };
 
 
+
     @Override
     public void onFrameDecoded(byte[] decoded, long presentationTimeUs) {
         Log.e("执行播放",bytesToHexString(decoded));
@@ -210,55 +219,45 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-        try {
-            bos.writeInt(encoded.length);
-            bos.write(encoded,0,encoded.length);//BufferOutputStream 将文件保存到内存卡中 *.aac
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        data.add(encoded);
+//        try {
+//            bos.writeInt(encoded.length);
+//            bos.write(encoded,0,encoded.length);//BufferOutputStream 将文件保存到内存卡中 *.aac
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
         // mAudioDecoder.decode(encoded, presentationTimeUs);
     }
 
     Socket socket2 = null;
-    private Runnable playRunable = new Runnable() {
+    private Runnable upload = new Runnable() {
         @Override
         public void run() {
-            try {
-                while (!mIsTestingExit) {
-                    if (socket2 == null) {
-                        socket2 = new Socket("192.168.1.106", 8888);
-                        socket2.setSoTimeout(5000);
+            while (!mIsTestingExit) {
+                if(data.size()>0){
+                    try {
+
+                        if(socket2 == null){
+                            socket2 = new Socket("192.168.1.106", 8888);
+                            socket2.setSoTimeout(5000);
+                        }
+                        OutputStream os = socket2.getOutputStream();
+                        DataOutputStream aos = new DataOutputStream(os);
+                        byte[] temp = data.get(0);
+                        aos.writeInt(temp.length);
+                        aos.write(temp,0,temp.length);
+                        data.remove(0);
+
+                        Thread.sleep(100);
+                    } catch (IOException e) {
+                    } catch (InterruptedException e) {
                     }
-
-                    InputStream is = socket2.getInputStream();
-                    if(is.available() >0){
-                        byte[] audio = new byte[1024 * 2];// 音频读取缓存
-
-                        int length = 0;
-
-                        length = is.read(audio);// 从网络读取音频数据
-                        byte[] temp = audio.clone();
-
-                        Log.e("talk", bytesToHexString(temp));
-                        // for(int
-                        // i=0;i<length;i++)audio[i]=(byte)(audio[i]*2);//音频放大1倍
-//                            audioTrack.write(audio, 0, temp.length);// 播放音频数据
-                        long presentationTimeUs = (System.nanoTime()) / 1000L;
-                       // mAudioDecoder.decode(temp, presentationTimeUs);
-                        Thread.sleep(300);
-                    }
-
-
 
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
             }
         }
-
     };
+
 
     public static String bytesToHexString(byte[] src) {
         StringBuilder stringBuilder = new StringBuilder("");
@@ -276,96 +275,63 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         return stringBuilder.toString();
     }
 
+    Socket socket = null;
+    public class AudioPlayer2 implements Runnable {
 
-
-
-    class AudioSend extends Thread {
-
-
-        @Override
-        public void run() {
-            super.run();
-            Socket socket = null;
-            OutputStream os = null;
-            AudioRecord recorder = null;
-            try {
-//                socket = new Socket("192.168.1.106",8888);
-//                socket.setSoTimeout(5000);
-//                os = socket.getOutputStream();
-                // 获得录音缓冲区大小
-                int  bufferSizeInBytes = AudioRecord.getMinBufferSize(sampleRateInHz,channelConfig,audioFormat);
-                Log.e("", "录音缓冲区大小"+bufferSizeInBytes);
-
-                // 获得录音机对象
-                recorder = new AudioRecord(audioSource,sampleRateInHz,channelConfig,audioFormat,bufferSizeInBytes);
-
-                recorder.startRecording();// 开始录音
-                byte[] readBuffer = new byte[2*1024];// 录音缓冲区
-
-                int length = 0;
-
-                while (!isStopTalk) {
-                    length = recorder.read(readBuffer, 0, 2*1024);// 从mic读取音频数据
-                    if (length > 0) {
-                       // os.write(readBuffer, 0, length);// 写入到输出流，把音频数据通过网络发送给对方
-                      //  audioM.dstAudioFormatFromPCM(readBuffer);
-                    }
-                }
-                recorder.stop();
-                recorder.release();
-                recorder = null;
-               // os.close();
-                //socket.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-    AudioTrack audioTrack;
-    public class AudioPlay extends Thread {
-        public AudioPlay() {
+        InputStream dis;
+        AudioPlayer2(){
         }
 
         @Override
         public void run() {
-            super.run();
             try {
-                Socket socket = null;
-                socket = new Socket("192.168.1.106",8888);
-                socket.setSoTimeout(5000);
-                InputStream is = socket.getInputStream();
-                int bufferSize = AudioTrack.getMinBufferSize(44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT);
-                audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, 44100, AudioFormat.CHANNEL_OUT_MONO, AudioFormat.ENCODING_PCM_16BIT, bufferSize * 2, AudioTrack.MODE_STREAM);
+                if(socket == null){
+                    socket = new Socket("192.168.1.106", 8888);
+                    socket.setSoTimeout(5000);
 
-                // 设置喇叭音量
-                audioTrack.setStereoVolume(1.0f, 1.0f);
-
-                // 开始播放声音
-                audioTrack.play();
-                byte[] audio = new byte[1024 *2];// 音频读取缓存
-                int length = 0;
-
-                while (!isStopTalk) {
-                    length = is.read(audio);// 从网络读取音频数据
-                    byte[] temp = audio.clone();
-                    if (length > 0 && length % 2 == 0) {
-                        // for(int
-                        // i=0;i<length;i++)audio[i]=(byte)(audio[i]*2);//音频放大1倍
-                        audioTrack.write(audio, 0, temp.length);// 播放音频数据
-                    }
                 }
-                audioTrack.stop();
-                audioTrack.release();
-                audioTrack = null;
-                is.close();
-                socket.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
+
+            while (!mIsTestingExit) {
+                try {
+
+                    //当前帧长度
+                    int len = 0;
+                    //每次从文件读取的数据
+                    DataInputStream ois = new DataInputStream(socket.getInputStream());
+                    byte[] buffer = new byte[2 * 1024];
+                    while ((len = ois.readInt()) != -1) {
+
+                        int newLen = ois.read(buffer,0,len);
+                        if(len > buffer.length){
+                            Log.e("error","buffer big");
+                        }
+                        if(newLen == len){
+                            mAudioDecoder.decode(buffer, newLen);
+                        }
+                    }
+
+                    socket.close();
+                 } catch (Exception e) {
+                   // Log.e("error",e.toString());
+                }
+            }
+//                    DataInputStream dis = new DataInputStream(socket.getInputStream()) ;
+//                    while ((len = dis.read(buffer)) != -1) {
+//                        Log.e("error", "buffer big");
+//                        int newLen = dis.read(buffer, 0, len);
+//                        if (len > buffer.length) {
+//                            Log.e("error", "buffer big");
+//                        }
+//                        if (newLen == len) {
+//                            mAudioDecoder.decode(buffer, newLen);
+//                        }
+//
+//                    }
         }
     }
-
 
     /**
      * MediaPlayer播放
