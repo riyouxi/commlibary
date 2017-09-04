@@ -8,7 +8,9 @@ import android.media.AudioTrack;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.media.audiofx.LoudnessEnhancer;
+import android.net.TrafficStats;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.util.Log;
@@ -39,13 +41,15 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Level;
 
 /**
  * Created by shanshan on 2017/8/28.
  */
 
-public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudioFrameCapturedListener,
+public class AudioMainActivity2 extends Activity implements
         AudioEncoder.OnAudioEncodedListener, AudioDecoder.OnAudioDecodedListener {
 
     private boolean granted;
@@ -55,6 +59,8 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
     private AudioCapturer mAudioCapturer;
     private AudioPlayer mAudioPlayer;
     private volatile boolean mIsTestingExit = false;
+
+    private volatile boolean mReadExit = false;
     /**
      * 音频获取源
      */
@@ -77,6 +83,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
     private DataOutputStream bos;
 
     private List<byte[]> data = new ArrayList<>();
+    ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,21 +100,26 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
         mAudioEncoder.setAudioEncodedListener(this);
         mAudioDecoder.setAudioDecodedListener(this);
-        mAudioCapturer.setOnAudioFrameCapturedListener(this);
+
+        mAudioCapturer.setOnAudioFrameCapturedListener(audioDataListener);
+        mAudioPlayer = new AudioPlayer();
+        mAudioPlayer.startPlayer();
+        mAudioDecoder.open();
+       // new Thread(mDecodeRenderRunnable).start();
+       // new Thread(new AudioPlayer2()).start();
+        //fixedThreadPool.execute(mDecodeRenderRunnable);
+        //fixedThreadPool.execute(new AudioPlayer2());
 
         mStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                try {
-                    fos = new FileOutputStream(new File("/sdcard/new.aac"));
-                    bos = new DataOutputStream(fos);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
+                mIsTestingExit = false;
                 mAudioEncoder.open();
-                new Thread(mEncodeRenderRunnable).start();
+                fixedThreadPool.execute(mEncodeRenderRunnable);
+                fixedThreadPool.execute(upload);
                 mAudioCapturer.startCapture();
-                new Thread(upload).start();
+                mAudioCapturer.setOnAudioFrameCapturedListener(audioDataListener);
+
 
             }
         });
@@ -115,7 +127,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mEnd.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                isStopTalk = false;
+                mIsTestingExit = true;
                 mAudioCapturer.stopCapture();
             }
         });
@@ -218,13 +230,16 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mAudioPlayer.play(decoded, 0, decoded.length);
     }
 
-
+    private AudioCapturer.OnAudioFrameCapturedListener audioDataListener = new AudioCapturer.OnAudioFrameCapturedListener(){
 
     @Override
     public void onAudioFrameCaptured(byte[] audioData) {
         long presentationTimeUs = (System.nanoTime()) / 1000L;
         mAudioEncoder.encode(audioData, presentationTimeUs);
     }
+
+    };
+
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
@@ -239,7 +254,6 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 //         mAudioDecoder.decode(encoded,encoded.length);
     }
 
-    Socket socket2 = null;
     private Runnable upload = new Runnable() {
         @Override
         public void run() {
@@ -247,11 +261,11 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                 if(data.size()>0){
                     try {
 
-                        if(socket2 == null){
-                            socket2 = new Socket("192.168.1.106", 8888);
-                            socket2.setSoTimeout(5000);
+                        if(socket == null){
+                            socket = new Socket("192.168.1.106", 8888);
+                            socket.setSoTimeout(5000);
                         }
-                        OutputStream os = socket2.getOutputStream();
+                        OutputStream os = socket.getOutputStream();
                         DataOutputStream aos = new DataOutputStream(os);
                         byte[] temp = data.get(0);
                         aos.writeInt(temp.length);
@@ -267,6 +281,32 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
             }
         }
     };
+
+   static  double totalWifi;
+
+    public static double getWifiTraffic(){
+        double rtotalGprs = TrafficStats.getTotalRxBytes();
+        double ttotalGprs = TrafficStats.getTotalTxBytes();
+        double rgprs = TrafficStats.getMobileRxBytes();
+        double tgprs = TrafficStats.getMobileTxBytes();
+        double rwifi = rtotalGprs - rgprs;
+        double twifi = ttotalGprs - tgprs;
+        totalWifi = rwifi + twifi;
+        return totalWifi;
+
+    }
+
+    CountDownTimer cdt = new CountDownTimer(20000, 1000) {
+        @Override
+        public void onTick(long millisUntilFinished) {
+           Log.e("totalwifi",getWifiTraffic()+"");
+        }
+        @Override
+        public void onFinish() {
+
+        }
+    };
+
 
 
     public static String bytesToHexString(byte[] src) {
@@ -376,7 +416,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                 e.printStackTrace();
             }
 
-            while (!mIsTestingExit) {
+            while (!mReadExit) {
                 try {
 
                     //当前帧长度
