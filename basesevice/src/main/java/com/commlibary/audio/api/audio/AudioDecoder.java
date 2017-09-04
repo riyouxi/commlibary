@@ -142,7 +142,7 @@ public class AudioDecoder {
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+           // t.printStackTrace();
             return false;
         }
         return true;

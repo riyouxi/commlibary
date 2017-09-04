@@ -136,9 +136,9 @@ public class Test {
             if(tmpbytes.size() > 0){  //上一次IO流中有未处理的剩余包
                 int oldBytesLen = tmpbytes.get(0).length;
                 int socketBytesLen = dis.available()+1;
-                int currentLength = oldByteLen + socketBytesLen;
-                currentbytes = new byte[currentLength];
-                System.arraycopy(tmpbytes.get(0), 0, currentbytes, oldBytesLen);
+                //int currentLength = oldByteLen + socketBytesLen;
+              //  currentbytes = new byte[currentLength];
+              //  System.arraycopy(tmpbytes.get(0), 0, currentbytes, oldBytesLen);
                 currentbytes[oldBytesLen] = tmpb;
                 dis.read(currentbytes, oldBytesLen+1, socketBytesLen-1);
                 dis.close();
@@ -169,29 +169,29 @@ public class Test {
                 if(parambytes.length > 4){
                     byte[] head = new byte[4];  //单包长度
                     System.arraycopy(parambytes, 0, head, 0, 4);
-                    int bodyLength = ByteArrayUtil.getint(head);
-                    if(bodyLength <= parambytes.length-4){
-                        final byte[] body = new byte[bodyLength];
-                        System.arraycopy(parambytes, 4, body, 0, bodyLength);
-                        ThreadPool.execute(new Runnable(){
-                            public void run(){
-                                byte[] processDatas = body;
-                                try{
-                                    System.out.println(IOUtils.toString(processDatas, "UTF-8").trim());
-                                }catch(IOException e){
-                                    logger.error(e.getMessage(), e);
-                                }
-                            }
-                        });
-
-                        int resultLen = parambytes.length-4-bodyLength;
-                        if(resultLen == 0){
-                            splitInputStreamByte(null);
-                        }else{
-                            byte[] resultbytes = new byte[resultLen];
-                            System.arraycopy(parambytes, 4+bodyLength, resultbytes, 0, resultLen);
-                            splitInputStreamByte(resultbytes);
-                        }
+//                    int bodyLength = ByteArrayUtil.getint(head);
+//                    if(bodyLength <= parambytes.length-4){
+//                        final byte[] body = new byte[bodyLength];
+//                        System.arraycopy(parambytes, 4, body, 0, bodyLength);
+//                        ThreadPool.execute(new Runnable(){
+//                            public void run(){
+//                                byte[] processDatas = body;
+//                                try{
+//                                    System.out.println(IOUtils.toString(processDatas, "UTF-8").trim());
+//                                }catch(IOException e){
+//                                    logger.error(e.getMessage(), e);
+//                                }
+//                            }
+//                        });
+//
+//                        int resultLen = parambytes.length-4-bodyLength;
+//                        if(resultLen == 0){
+//                            splitInputStreamByte(null);
+//                        }else{
+//                            byte[] resultbytes = new byte[resultLen];
+//                            System.arraycopy(parambytes, 4+bodyLength, resultbytes, 0, resultLen);
+//                            splitInputStreamByte(resultbytes);
+//                        }
                     }else{
                         tmpbytes.clear();
                         tmpbytes.add(parambytes);
@@ -201,7 +201,6 @@ public class Test {
                     tmpbytes.add(parambytes);
                 }
             }
-        }
     }
 
 

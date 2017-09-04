@@ -38,6 +38,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Vector;
 import java.util.logging.Level;
 
 /**
@@ -219,6 +220,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
+
         data.add(encoded);
 //        try {
 //            bos.writeInt(encoded.length);
@@ -238,19 +240,20 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                     try {
 
                         if(socket2 == null){
-                            socket2 = new Socket("192.168.1.106", 8888);
+                            socket2 = new Socket("192.168.1.16", 8888);
                             socket2.setSoTimeout(5000);
                         }
                         OutputStream os = socket2.getOutputStream();
                         DataOutputStream aos = new DataOutputStream(os);
                         byte[] temp = data.get(0);
                         aos.writeInt(temp.length);
+                        Log.e("length",temp.length+"");
+                        Log.e("meaage","ss:"+bytesToHexString(temp));
                         aos.write(temp,0,temp.length);
                         data.remove(0);
 
-                        Thread.sleep(100);
                     } catch (IOException e) {
-                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
 
                 }
@@ -278,15 +281,88 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
     Socket socket = null;
     public class AudioPlayer2 implements Runnable {
 
-        InputStream dis;
-        AudioPlayer2(){
+        private Vector<byte[]> tmpbytes = new Vector<byte[]>();
+        private int fileLength = -1;
+
+        AudioPlayer2() {
+        }
+
+        private void splitByte(byte[] parambytes) {
+            if (parambytes != null) {
+                System.out.println(parambytes.length);
+                if (parambytes.length > 4) {
+                    byte[] head = new byte[4];  //单包长度
+                    System.arraycopy(parambytes, 0, head, 0, 4);
+                    int bodyLength;
+
+                    if (fileLength == -1) {
+                        bodyLength = getint(head);
+                        fileLength = bodyLength;
+                    } else {
+                        bodyLength = fileLength;
+                    }
+                    System.out.println("bodyLength:" + bodyLength + "paramlength:" + parambytes.length);
+
+                    if (bodyLength <= parambytes.length - 4) {
+                        byte[] body = new byte[bodyLength];
+                        System.arraycopy(parambytes, 4, body, 0, bodyLength);
+
+                        int reslutLen = parambytes.length - 4 - bodyLength;
+                        //System.out.println(bytesToHexString(body));
+                        if (reslutLen == 0) {
+                            fileLength = -1;
+                            tmpbytes.clear();
+                            mAudioDecoder.decode(body,body.length);
+                            Log.e("meaage",bytesToHexString(body));
+
+                            //splitByte(null);
+                        } else {
+                            if (reslutLen > 0) {
+                                fileLength = -1;
+                                mAudioDecoder.decode(body,body.length);
+                                Log.e("meaage",bytesToHexString(body));
+                                System.out.println(bytesToHexString(body));
+                                byte[] temp = new byte[reslutLen];
+                                System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
+                                splitByte(temp);
+                            } else if (reslutLen < 0) {
+                                System.out.println("..............");
+                                byte[] temp = new byte[reslutLen];
+                                System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
+                                tmpbytes.clear();
+                                tmpbytes.add(temp);
+                            }
+
+
+                        }
+                    } else {
+                        tmpbytes.clear();
+                        System.out.println("后" + parambytes);
+                        tmpbytes.add(parambytes);
+                    }
+
+                } else {
+                    tmpbytes.clear();
+                    System.out.println("后" + parambytes);
+                    tmpbytes.add(parambytes);
+                }
+            }
+        }
+
+        public final int getint(byte[] paramArrayOfByte) {
+
+            int reslut = (paramArrayOfByte[0] & 0xFF) << 24
+                    | (paramArrayOfByte[1] & 0xFF) << 16
+                    | (paramArrayOfByte[2] & 0xFF) << 8
+                    | paramArrayOfByte[3] & 0xFF;
+            return reslut;
         }
 
         @Override
         public void run() {
             try {
-                if(socket == null){
-                    socket = new Socket("192.168.1.106", 8888);
+                if (socket == null) {
+                    socket = new Socket("192.168.1.16", 8888);
                     socket.setSoTimeout(5000);
 
                 }
@@ -300,24 +376,33 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                     //当前帧长度
                     int len = 0;
                     //每次从文件读取的数据
-                    DataInputStream ois = new DataInputStream(socket.getInputStream());
+                    InputStream dis = socket.getInputStream();
                     byte[] buffer = new byte[2 * 1024];
-                    while ((len = ois.readInt()) != -1) {
+                    while ((len = dis.read(buffer)) != 0) {
+                        if (tmpbytes.size() > 0 && len > 0) {
+                            int oldByteslen = tmpbytes.get(0).length;
+                            System.out.println("oldlength:" + oldByteslen + "len:" + len);
+                            int currenLenght = oldByteslen + len;
+                            byte[] currentbytes = new byte[currenLenght];
+                            System.out.println("前" + tmpbytes.get(0));
+                            System.arraycopy(tmpbytes.get(0), 0, currentbytes, 0, oldByteslen);
+                            System.arraycopy(buffer, 0, currentbytes, oldByteslen, len);
+                            splitByte(currentbytes);
+                        } else {
+                            if (tmpbytes.size() == 0 && len > 0) {
+                                byte[] temp = new byte[len];
+                                System.arraycopy(buffer, 0, temp, 0, len);
+                                splitByte(temp);
+                            }
 
-                        int newLen = ois.read(buffer,0,len);
-                        if(len > buffer.length){
-                            Log.e("error","buffer big");
                         }
-                        if(newLen == len){
-                            mAudioDecoder.decode(buffer, newLen);
-                        }
+
+                       // socket.close();
                     }
 
-                    socket.close();
-                 } catch (Exception e) {
-                   // Log.e("error",e.toString());
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            }
 //                    DataInputStream dis = new DataInputStream(socket.getInputStream()) ;
 //                    while ((len = dis.read(buffer)) != -1) {
 //                        Log.e("error", "buffer big");
@@ -330,6 +415,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 //                        }
 //
 //                    }
+            }
         }
     }
 

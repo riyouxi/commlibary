@@ -9,9 +9,6 @@ import com.commlibary.http.request.OpsRequest;
 import com.commlibary.http.response.ResponseListener;
 import com.commlibary.http.response.ResponseObject;
 
-import modle.test.com.commlibary.entity.Device;
-import modle.test.com.commlibary.entity.DeviceResp;
-import modle.test.com.commlibary.entity.GpsReq;
 import modle.test.com.commlibary.entity.GpsResp;
 import modle.test.com.commlibary.entity.LoginReq;
 import modle.test.com.commlibary.entity.LoginResp;
@@ -41,25 +38,25 @@ public class MainActivity extends AppCompatActivity implements IShowView {
 //
 //            }
 //        },"");
-
-        GpsReq req = new GpsReq();
-       // req.setToken("MTUwMzI4MTQyNjM2Nl8xX2hlcmRzbWFu");
-
-        OpsRequest<GpsReq,DeviceResp> request = OpsRequest.createPost(ServerHttpUrl.getGpsList());
-        request.requestValue(req).responseClass(DeviceResp.class).addHeader("token","MTUwMzI4MTQyNjM2").execute(new LoadingResponseListener<DeviceResp>(new ResponseListener<DeviceResp>() {
-            @Override
-            public void onResponse(ResponseObject<DeviceResp> reponse) {
-                if(ResponseObject.isOk(reponse)){
-
-                }
-
-            }
-
-            @Override
-            public void onError(Exception error) {
-
-            }
-        },this),"");
+//
+//        GpsReq req = new GpsReq();
+//       // req.setToken("MTUwMzI4MTQyNjM2Nl8xX2hlcmRzbWFu");
+//
+//        OpsRequest<GpsReq,DeviceResp> request = OpsRequest.createPost(ServerHttpUrl.getGpsList());
+//        request.requestValue(req).responseClass(DeviceResp.class).addHeader("token","MTUwMzI4MTQyNjM2").execute(new LoadingResponseListener<DeviceResp>(new ResponseListener<DeviceResp>() {
+//            @Override
+//            public void onResponse(ResponseObject<DeviceResp> reponse) {
+//                if(ResponseObject.isOk(reponse)){
+//
+//                }
+//
+//            }
+//
+//            @Override
+//            public void onError(Exception error) {
+//
+//            }
+//        },this),"");
 
 
     }
