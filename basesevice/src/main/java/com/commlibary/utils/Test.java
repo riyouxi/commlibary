@@ -1,9 +1,7 @@
 package com.commlibary.utils;
 
 
-import android.graphics.Bitmap;
-import android.provider.Settings;
-import android.util.Log;
+
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -19,32 +17,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Vector;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import rx.Observable;
-import rx.Observer;
-import rx.Subscriber;
-import rx.functions.Action1;
-import rx.functions.Func1;
-import rx.schedulers.Schedulers;
 
 public class Test {
 
     // 使用ArrayList存储所有的Socket
     // 模仿保存在内存中的socket
     public Map<Integer, Socket> socketMap = new HashMap();
+    private static ExecutorService ThradPool = Executors.newSingleThreadExecutor();
 
 
     public static void main(String[] args) {
         new Test();
     }
 
-    public Test() {
+    @SuppressWarnings("resource")
+	public Test() {
         try {
             // 为了简单起见，所有的异常信息都往外抛
             int port = 8888;
@@ -55,7 +46,7 @@ public class Test {
                 // server尝试接收其他Socket的连接请求，server的accept方法是阻塞式的
                 Socket socket = server.accept();
                 System.out.println("用户接入 : " + socket.getPort());
-                socketMap.put(socket.getLocalPort(), socket);
+                socketMap.put(socket.getPort(), socket);
                 /**
                  * 我们的服务端处理客户端的连接请求是同步进行的， 每次接收到来自客户端的连接请求后，
                  * 都要先跟当前的客户端通信完之后才能再处理下一个连接请求。 这在并发比较多的情况下会严重影响程序的性能，
@@ -75,6 +66,7 @@ public class Test {
      */
     class Task implements Runnable {
         private Vector<byte[]> tmpbytes = new Vector<byte[]>();
+        private int fileLength = -1;
 
         private Socket socket;
 
@@ -93,6 +85,90 @@ public class Test {
                 e.printStackTrace();
             }
         }
+        
+        private void splitByte(byte[] parambytes){
+        	if(parambytes!=null){
+        		 System.out.println(parambytes.length);
+        		if(parambytes.length>4){
+        			byte[] head = new byte[4];  //单包长度
+                    System.arraycopy(parambytes, 0, head, 0, 4);
+                    int bodyLength;
+                    
+                    if(fileLength == -1){
+                           bodyLength = getint(head);
+                           fileLength = bodyLength;
+                    }else{
+                    	bodyLength = fileLength;
+                    }
+                    System.out.println("bodyLength:"+bodyLength+"paramlength:"+parambytes.length);
+                   
+                    if(bodyLength <= parambytes.length -4){
+                    	byte[] body = new byte[bodyLength];
+                    	System.arraycopy(parambytes, 4, body, 0, bodyLength);
+                    	int reslutLen = parambytes.length-4-bodyLength;
+                    	//System.out.println(bytesToHexString(body));
+                    	if(reslutLen == 0){
+                    		fileLength = -1;
+                    		tmpbytes.clear();
+                    		System.out.println("socketSize"+socketMap.size());
+                    		 for (Map.Entry<Integer, Socket> entry : socketMap.entrySet()) {
+                                 if(entry.getKey().equals(socket.getPort())){
+                                    continue;
+                                 }
+                                 Socket temp = entry.getValue();
+                                  try {
+                                	  DataOutputStream is =new DataOutputStream(temp.getOutputStream());
+                                	  is.writeInt(body.length);
+                                	  is.write(body);
+                                	  }catch (Exception e) {
+										// TODO: handle exception
+									}
+                    		 }
+                    		//splitByte(null);
+                    	}else{
+                    		if(reslutLen >0){
+                    			fileLength = -1;
+                                System.out.println("socketSize"+socketMap.size());
+                    			for (Map.Entry<Integer, Socket> entry : socketMap.entrySet()) {
+                                    if(entry.getKey().equals(socket.getPort())){
+                                       continue;
+                                    }
+                                    Socket temp = entry.getValue();
+                                     try {
+                                   	  DataOutputStream is =new DataOutputStream(temp.getOutputStream());
+                                   	  is.writeInt(body.length);
+                                   	  is.write(body);
+                                   	  }catch (Exception e) {
+   										// TODO: handle exception
+   									}
+                       		 }
+                    			System.out.println(bytesToHexString(body));
+                    			byte[] temp = new byte[reslutLen];
+                                System.arraycopy(parambytes, 4+bodyLength, temp, 0, reslutLen);
+                                splitByte(temp);
+                    		}else if(reslutLen <0){
+                    			System.out.println("..............");
+                    			byte[] temp = new byte[reslutLen];
+                                System.arraycopy(parambytes, 4+bodyLength, temp, 0, reslutLen);
+                                tmpbytes.clear();
+                                tmpbytes.add(temp);
+                    		}
+                    		
+                    		
+                    	}
+                    }else{
+                    	tmpbytes.clear();
+                    	System.out.println("后"+parambytes);
+                    	tmpbytes.add(parambytes);
+                    }
+                    
+        		}else{
+        			tmpbytes.clear();
+        			System.out.println("后"+parambytes);
+        			tmpbytes.add(parambytes);
+        		}
+        	}
+        }
 
         /**
          * 跟客户端Socket进行通信
@@ -102,62 +178,71 @@ public class Test {
         private void handlerSocket() throws Exception {
             // 跟客户端建立好连接之后，我们就可以获取socket的InputStream，并从中读取客户端发过来的信息了
             // 从客户端获取信息
-
-            DataInputStream dis = new DataInputStream(socket.getInputStream());
+        	
+        		
+        	DataInputStream dis = new DataInputStream(socket.getInputStream());
             //当前帧长度
             int len = 0;
             //每次从文件读取的数据
             byte[] buffer = new byte[2 * 1024];
-            System.out.println(dis.readInt() + ".." + dis.available());
+           // System.out.println(dis.readInt() + ".." + dis.available());
 
-            buffer = new byte[1024 * 2];
-//            int nIdx = 0;
-//            int nReadLen = 0;
-//            int fileLenght = dis.readInt();
-//            while (nIdx < fileLenght) {
-//                nReadLen = dis.read(buffer, nIdx, fileLenght - nIdx);
-//                if (nReadLen > 0)
-//                {
-//                    nIdx = nIdx + nReadLen;
-//                }
-//                if(nIdx == fileLenght){
-//                    for (Map.Entry<Integer, Socket> entry : socketMap.entrySet()) {
-//                        Socket temp = entry.getValue();
-//                        DataOutputStream dos = new DataOutputStream(temp.getOutputStream());
-//                        dos.writeInt(fileLenght);
-//                        dos.write(buffer, 0, fileLenght);
-//                        System.out.println(bytesToHexString(buffer));
-//                }
-//             }
-//            }
-
-            byte tmpb = (byte)dis.read();
-            byte[] currentbytes = null;
-            if(tmpbytes.size() > 0){  //上一次IO流中有未处理的剩余包
-                int oldBytesLen = tmpbytes.get(0).length;
-                int socketBytesLen = dis.available()+1;
-                //int currentLength = oldByteLen + socketBytesLen;
-              //  currentbytes = new byte[currentLength];
-              //  System.arraycopy(tmpbytes.get(0), 0, currentbytes, oldBytesLen);
-                currentbytes[oldBytesLen] = tmpb;
-                dis.read(currentbytes, oldBytesLen+1, socketBytesLen-1);
-                dis.close();
-                splitInputStreamByte(currentbytes);
-            }else{  //正常未粘包情况
-                int socketBytesLen = dis.available()+1;
-                currentbytes = new byte[socketBytesLen];
-                currentbytes[0] = tmpb;
-                dis.read(currentbytes, 1, socketBytesLen-1);
-                dis.close();
-                splitInputStreamByte(currentbytes);
+           
+            while((len = dis.read(buffer))!=0){
+            	if(tmpbytes.size()>0 && len>0){
+            		int oldByteslen = tmpbytes.get(0).length;
+            		System.out.println("oldlength:"+oldByteslen+"len:"+len);
+            		int currenLenght = oldByteslen+len;
+            		byte[] currentbytes = new byte[currenLenght];
+            		System.out.println("前"+tmpbytes.get(0));
+            		System.arraycopy(tmpbytes.get(0), 0, currentbytes, 0, oldByteslen);
+            		System.arraycopy(buffer, 0, currentbytes, oldByteslen, len);
+            		splitByte(currentbytes);
+            	}else{
+            		if(tmpbytes.size() == 0 &&len >0){
+            			byte[] temp = new byte[len];
+            			System.arraycopy(buffer, 0, temp, 0, len);
+            			splitByte(temp);
+            		}
+            		
+            	}
+            	Thread.sleep(100);
             }
-
-            System.out.println(
-                    "To Cliect[port:" + socket.getPort() + "] 回复客户端的消息发送成功");
-
-            dis.close();
             socket.close();
+//
+//            byte tmpb = (byte)dis.read();
+//           // byte[] currentbytes;
+//            if(tmpbytes.size() > 0){  //上一次IO流中有未处理的剩余包
+//                int oldBytesLen = tmpbytes.get(0).length;
+//                int socketBytesLen = dis.available()+1;
+//                System.out.println("oldBytesLen:"+oldBytesLen+"...."+"socketBytesLen:"+socketBytesLen);
+//                int currentLength = oldBytesLen + socketBytesLen;
+//                currentbytes = new byte[currentLength];
+//                System.arraycopy(tmpbytes.get(0), 0, currentbytes, 0,currentLength);
+//                currentbytes[oldBytesLen] = tmpb;
+//                dis.read(currentbytes, oldBytesLen+1, socketBytesLen-1);
+//               // dis.close();
+//                splitInputStreamByte(currentbytes);
+//            }else{  //正常未粘包情况
+//                int socketBytesLen = dis.available()+1;
+//                System.out.println(socketBytesLen);
+//                currentbytes = new byte[socketBytesLen];
+//                currentbytes[0] = tmpb;
+//                dis.read(currentbytes, 1, socketBytesLen-1);
+//              //  dis.close();
+//                splitInputStreamByte(currentbytes);
+//            }
+//            Thread.sleep(1000);
+
+//            System.out.println(
+//                    "To Cliect[port:" + socket.getPort() + "] 回复客户端的消息发送成功");
+           // dis.close();
+
+            
+            //socket.close();
         }
+        
+       
 
         /**
          * 拆分byte数组并分多线程处理
@@ -165,33 +250,45 @@ public class Test {
          * @return 处理后剩余部分的byte数组
          */
         private  void splitInputStreamByte(byte[] parambytes) {
+        	
             if(parambytes != null){
+            	for(byte b: parambytes){
+            		System.out.print(b);
+            	}
                 if(parambytes.length > 4){
                     byte[] head = new byte[4];  //单包长度
                     System.arraycopy(parambytes, 0, head, 0, 4);
-//                    int bodyLength = ByteArrayUtil.getint(head);
-//                    if(bodyLength <= parambytes.length-4){
-//                        final byte[] body = new byte[bodyLength];
-//                        System.arraycopy(parambytes, 4, body, 0, bodyLength);
-//                        ThreadPool.execute(new Runnable(){
-//                            public void run(){
-//                                byte[] processDatas = body;
-//                                try{
-//                                    System.out.println(IOUtils.toString(processDatas, "UTF-8").trim());
-//                                }catch(IOException e){
-//                                    logger.error(e.getMessage(), e);
-//                                }
-//                            }
-//                        });
-//
-//                        int resultLen = parambytes.length-4-bodyLength;
-//                        if(resultLen == 0){
-//                            splitInputStreamByte(null);
-//                        }else{
-//                            byte[] resultbytes = new byte[resultLen];
-//                            System.arraycopy(parambytes, 4+bodyLength, resultbytes, 0, resultLen);
-//                            splitInputStreamByte(resultbytes);
-//                        }
+                    int bodyLength = getint(head);
+                    System.out.println("bodylength:"+bodyLength);
+                    if(bodyLength <= parambytes.length-4){
+                        final byte[] body = new byte[bodyLength];
+                        System.arraycopy(parambytes, 4, body, 0, bodyLength);
+                        int resultLen = parambytes.length-4-bodyLength;
+                        if(resultLen == 0){
+                        	System.out.println(bytesToHexString(body));
+                        	 for (Map.Entry<Integer, Socket> entry : socketMap.entrySet()) {
+                             if(entry.getKey().equals(socket.getPort())){
+                                continue;
+                             }
+                             Socket temp = entry.getValue();
+                              try {
+                            	  DataOutputStream is =new DataOutputStream(temp.getOutputStream());
+                            	  is.write(body.length);
+                            	  is.write(body);
+							} catch (IOException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+//                            System.out.println(bytesToHexString(bytes));
+                        	 	}
+
+                            splitInputStreamByte(null);
+                        }else{
+                        	System.out.println(bytesToHexString(body));
+                            byte[] resultbytes = new byte[resultLen];
+                            System.arraycopy(parambytes, 4+bodyLength, resultbytes, 0, resultLen);
+                            splitInputStreamByte(resultbytes);
+                        }
                     }else{
                         tmpbytes.clear();
                         tmpbytes.add(parambytes);
@@ -201,6 +298,16 @@ public class Test {
                     tmpbytes.add(parambytes);
                 }
             }
+        }
+    }
+
+    public static final int getint(byte[] paramArrayOfByte){
+
+        int reslut = (paramArrayOfByte[0]&0xFF)<<24
+                |(paramArrayOfByte[1]&0xFF)<<16
+                |(paramArrayOfByte[2]&0xFF)<<8
+                |paramArrayOfByte[3]&0xFF;
+        return reslut;
     }
 
 

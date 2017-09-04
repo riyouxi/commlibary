@@ -97,7 +97,6 @@ public class AudioEncoder {
     }
 
     public synchronized boolean encode(byte[] input, long presentationTimeUs) {
-        Log.d(TAG, "encode: " + presentationTimeUs);
         if (!mIsOpened) {
             return false;
         }
@@ -115,7 +114,6 @@ public class AudioEncoder {
             t.printStackTrace();
             return false;
         }
-        Log.d(TAG, "encode -");
         return true;
     }
 
@@ -150,7 +148,6 @@ public class AudioEncoder {
 //    }
 
     public synchronized byte[] retrieve() {
-        Log.d(TAG, "encode retrieve +");
         if (!mIsOpened) {
             return null;
         }
@@ -176,7 +173,6 @@ public class AudioEncoder {
             t.printStackTrace();
             return null;
         }
-        Log.d(TAG, "encode retrieve -");
         return null;
     }
 }

@@ -95,7 +95,6 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         mAudioDecoder.setAudioDecodedListener(this);
         mAudioCapturer.setOnAudioFrameCapturedListener(this);
 
-
         mStart.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -127,16 +126,25 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                 mAudioPlayer = new AudioPlayer();
                 mAudioPlayer.startPlayer();
                 mAudioDecoder.open();
-//                new Thread(readFile).start();
-                new Thread(new AudioPlayer2()).start();
                 new Thread(mDecodeRenderRunnable).start();
+                new Thread(new AudioPlayer2()).start();
             }
         });
 
         mOther.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                new AudioCodecTester().startTesting();
+//                new AudioCodecTester().startTesting();
+                mAudioEncoder.open();
+                mAudioDecoder.open();
+                mAudioPlayer = new AudioPlayer();
+                mAudioPlayer.startPlayer();
+                new Thread(mEncodeRenderRunnable).start();
+
+                new Thread(mDecodeRenderRunnable).start();
+                mAudioCapturer.startCapture();
+                new Thread(upload).start();
+                new Thread(new AudioPlayer2()).start();
             }
         });
 
@@ -176,7 +184,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                             Log.e("error","buffer big");
                         }
                         if(newLen == len){
-                            mAudioDecoder.decode(buffer, newLen);
+                           // mAudioDecoder.decode(buffer, newLen);
                         }
 
                     }
@@ -220,7 +228,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-
+        Log.e("meaage","ss:"+bytesToHexString(encoded));
         data.add(encoded);
 //        try {
 //            bos.writeInt(encoded.length);
@@ -228,7 +236,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
 //        } catch (IOException e) {
 //            e.printStackTrace();
 //        }
-        // mAudioDecoder.decode(encoded, presentationTimeUs);
+//         mAudioDecoder.decode(encoded,encoded.length);
     }
 
     Socket socket2 = null;
@@ -240,7 +248,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                     try {
 
                         if(socket2 == null){
-                            socket2 = new Socket("192.168.1.16", 8888);
+                            socket2 = new Socket("192.168.1.106", 8888);
                             socket2.setSoTimeout(5000);
                         }
                         OutputStream os = socket2.getOutputStream();
@@ -248,7 +256,6 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                         byte[] temp = data.get(0);
                         aos.writeInt(temp.length);
                         Log.e("length",temp.length+"");
-                        Log.e("meaage","ss:"+bytesToHexString(temp));
                         aos.write(temp,0,temp.length);
                         data.remove(0);
 
@@ -284,6 +291,10 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         private Vector<byte[]> tmpbytes = new Vector<byte[]>();
         private int fileLength = -1;
 
+        private boolean flag = true;
+
+
+
         AudioPlayer2() {
         }
 
@@ -312,25 +323,20 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                         if (reslutLen == 0) {
                             fileLength = -1;
                             tmpbytes.clear();
+                            Log.e("meaage2","ss:"+bytesToHexString(body));
                             mAudioDecoder.decode(body,body.length);
-                            Log.e("meaage",bytesToHexString(body));
 
                             //splitByte(null);
                         } else {
                             if (reslutLen > 0) {
                                 fileLength = -1;
+                                tmpbytes.clear();
                                 mAudioDecoder.decode(body,body.length);
-                                Log.e("meaage",bytesToHexString(body));
+                                Log.e("meaage2","ss:"+bytesToHexString(body));
                                 System.out.println(bytesToHexString(body));
                                 byte[] temp = new byte[reslutLen];
                                 System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
                                 splitByte(temp);
-                            } else if (reslutLen < 0) {
-                                System.out.println("..............");
-                                byte[] temp = new byte[reslutLen];
-                                System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
-                                tmpbytes.clear();
-                                tmpbytes.add(temp);
                             }
 
 
@@ -362,7 +368,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
         public void run() {
             try {
                 if (socket == null) {
-                    socket = new Socket("192.168.1.16", 8888);
+                    socket = new Socket("192.168.1.106", 8888);
                     socket.setSoTimeout(5000);
 
                 }
@@ -392,6 +398,7 @@ public class AudioMainActivity2 extends Activity implements AudioCapturer.OnAudi
                             if (tmpbytes.size() == 0 && len > 0) {
                                 byte[] temp = new byte[len];
                                 System.arraycopy(buffer, 0, temp, 0, len);
+
                                 splitByte(temp);
                             }
 
