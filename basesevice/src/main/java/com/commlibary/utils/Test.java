@@ -184,7 +184,7 @@ public class Test {
             //当前帧长度
             int len = 0;
             //每次从文件读取的数据
-            byte[] buffer = new byte[2 * 1024];
+            byte[] buffer = new byte[10 * 1024];
            // System.out.println(dis.readInt() + ".." + dis.available());
 
            

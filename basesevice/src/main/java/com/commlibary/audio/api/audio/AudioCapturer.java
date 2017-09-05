@@ -122,11 +122,19 @@ public class AudioCapturer {
                     Log.e(TAG, "Error ERROR_BAD_VALUE");
                 } else {
                     Log.d("TAG", "Audio captured: " + buffer.length);
+//                    calc1(buffer,0,ret);
                     if (mAudioFrameCapturedListener != null) {
                         mAudioFrameCapturedListener.onAudioFrameCaptured(buffer);
                     }
                 }
             }
+        }
+    }
+    void calc1(byte[] lin,int off,int len) {
+        int i,j;
+        for (i = 0; i < len; i++) {
+            j = lin[i+off];
+            lin[i+off] = (byte)(j>>2);
         }
     }
 }
