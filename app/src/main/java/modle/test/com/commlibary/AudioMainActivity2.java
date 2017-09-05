@@ -53,7 +53,7 @@ public class AudioMainActivity2 extends Activity implements
         AudioEncoder.OnAudioEncodedListener, AudioDecoder.OnAudioDecodedListener {
 
     private boolean granted;
-    private Button mStart, mEnd, mStartPlay,mOther;
+    private Button mStart, mEnd, mStartPlay,mOther,mStopPlay;
     private AudioEncoder mAudioEncoder;
     private AudioDecoder mAudioDecoder;
     private AudioCapturer mAudioCapturer;
@@ -61,29 +61,12 @@ public class AudioMainActivity2 extends Activity implements
     private volatile boolean mIsTestingExit = false;
 
     private volatile boolean mReadExit = false;
-    /**
-     * 音频获取源
-     */
-    private int audioSource = MediaRecorder.AudioSource.MIC;
-    /**
-     * 设置音频采样率，44100是目前的标准，但是某些设备仍然支持22050，16000，11025
-     */
-    private static int sampleRateInHz = 44100;
-    /**
-     * 设置音频的录制的声道CHANNEL_IN_STEREO为双声道，CHANNEL_CONFIGURATION_MONO为单声道
-     */
-    private static int channelConfig = AudioFormat.CHANNEL_IN_STEREO;
-    /**
-     * 音频数据格式:PCM 16位每个样本。保证设备支持。PCM 8位每个样本。不一定能得到设备支持。
-     */
-    private static int audioFormat = AudioFormat.ENCODING_PCM_16BIT;
-    boolean isStopTalk = false;
 
-    private FileOutputStream fos;
-    private DataOutputStream bos;
 
     private List<byte[]> data = new ArrayList<>();
     ExecutorService fixedThreadPool = Executors.newFixedThreadPool(5);
+
+    private AACDecoderUtil mAacUtil;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -93,6 +76,7 @@ public class AudioMainActivity2 extends Activity implements
         mEnd = (Button) findViewById(R.id.stop);
         mStartPlay = (Button) findViewById(R.id.start_paly);
         mOther = (Button) findViewById(R.id.other);
+        mStopPlay = (Button) findViewById(R.id.stop_paly);
 
         mAudioCapturer = new AudioCapturer();
         mAudioEncoder = new AudioEncoder();
@@ -100,15 +84,8 @@ public class AudioMainActivity2 extends Activity implements
 
         mAudioEncoder.setAudioEncodedListener(this);
         mAudioDecoder.setAudioDecodedListener(this);
-
-        mAudioCapturer.setOnAudioFrameCapturedListener(audioDataListener);
-        mAudioPlayer = new AudioPlayer();
-        mAudioPlayer.startPlayer();
-        mAudioDecoder.open();
-       // new Thread(mDecodeRenderRunnable).start();
-       // new Thread(new AudioPlayer2()).start();
-        //fixedThreadPool.execute(mDecodeRenderRunnable);
-        //fixedThreadPool.execute(new AudioPlayer2());
+        mAacUtil = new AACDecoderUtil();
+        mAacUtil.prepare();
 
         mStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -129,24 +106,34 @@ public class AudioMainActivity2 extends Activity implements
             public void onClick(View view) {
                 mIsTestingExit = true;
                 mAudioCapturer.stopCapture();
+
             }
         });
 
         mStartPlay.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                mReadExit = false;
                 mAudioPlayer = new AudioPlayer();
                 mAudioPlayer.startPlayer();
                 mAudioDecoder.open();
-                new Thread(mDecodeRenderRunnable).start();
-                new Thread(new AudioPlayer2()).start();
+                fixedThreadPool.execute(mDecodeRenderRunnable);
+                fixedThreadPool.execute(new AudioPlayer2());
+            }
+        });
+
+        mStopPlay.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mReadExit = true;
+                mAudioDecoder.close();
+                mAudioPlayer.stopPlayer();
             }
         });
 
         mOther.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-//                new AudioCodecTester().startTesting();
                 mAudioEncoder.open();
                 mAudioDecoder.open();
                 mAudioPlayer = new AudioPlayer();
@@ -215,7 +202,7 @@ public class AudioMainActivity2 extends Activity implements
     private Runnable mDecodeRenderRunnable = new Runnable() {
         @Override
         public void run() {
-            while (!mIsTestingExit) {
+            while (!mReadExit) {
                 mAudioDecoder.retrieve();
             }
             mAudioDecoder.close();
@@ -243,7 +230,6 @@ public class AudioMainActivity2 extends Activity implements
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-        Log.e("meaage","ss:"+bytesToHexString(encoded));
         data.add(encoded);
 //        try {
 //            bos.writeInt(encoded.length);
@@ -268,8 +254,8 @@ public class AudioMainActivity2 extends Activity implements
                         OutputStream os = socket.getOutputStream();
                         DataOutputStream aos = new DataOutputStream(os);
                         byte[] temp = data.get(0);
+                        Log.e("meaage","ss:"+bytesToHexString(temp));
                         aos.writeInt(temp.length);
-                        Log.e("length",temp.length+"");
                         aos.write(temp,0,temp.length);
                         data.remove(0);
 
@@ -307,9 +293,7 @@ public class AudioMainActivity2 extends Activity implements
         }
     };
 
-
-
-    public static String bytesToHexString(byte[] src) {
+    public static String bytesToHexString2(byte[] src) {
         StringBuilder stringBuilder = new StringBuilder("");
         if (src == null || src.length <= 0) {
             return null;
@@ -325,13 +309,31 @@ public class AudioMainActivity2 extends Activity implements
         return stringBuilder.toString();
     }
 
+
+
+    public static String bytesToHexString(byte[] src) {
+        StringBuilder stringBuilder = new StringBuilder("");
+        if (src == null || src.length <= 0) {
+            return null;
+        }
+        for (int i = 0; i < src.length; i++) {
+//            int v = src[i] & 0xFF;
+//            String hv = Integer.toHexString(v);
+//            if (hv.length() < 2) {
+//                stringBuilder.append(0);
+//            }
+            stringBuilder.append(src[i]+",");
+        }
+        return stringBuilder.toString();
+    }
+
     Socket socket = null;
     public class AudioPlayer2 implements Runnable {
 
         private Vector<byte[]> tmpbytes = new Vector<byte[]>();
         private int fileLength = -1;
 
-        private boolean flag = true;
+        private byte[] startBuffer = {18,16};
 
 
 
@@ -360,10 +362,10 @@ public class AudioMainActivity2 extends Activity implements
 
                         int reslutLen = parambytes.length - 4 - bodyLength;
                         //System.out.println(bytesToHexString(body));
+                        System.out.println(bytesToHexString(body));
                         if (reslutLen == 0) {
                             fileLength = -1;
                             tmpbytes.clear();
-                            Log.e("meaage2","ss:"+bytesToHexString(body));
                             mAudioDecoder.decode(body,body.length);
 
                             //splitByte(null);
@@ -372,7 +374,6 @@ public class AudioMainActivity2 extends Activity implements
                                 fileLength = -1;
                                 tmpbytes.clear();
                                 mAudioDecoder.decode(body,body.length);
-                                Log.e("meaage2","ss:"+bytesToHexString(body));
                                 System.out.println(bytesToHexString(body));
                                 byte[] temp = new byte[reslutLen];
                                 System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
@@ -424,7 +425,7 @@ public class AudioMainActivity2 extends Activity implements
                     //每次从文件读取的数据
                     InputStream dis = socket.getInputStream();
                     byte[] buffer = new byte[2 * 1024];
-                    while ((len = dis.read(buffer)) != 0) {
+                    while (!mReadExit && (len = dis.read(buffer)) != 0) {
                         if (tmpbytes.size() > 0 && len > 0) {
                             int oldByteslen = tmpbytes.get(0).length;
                             System.out.println("oldlength:" + oldByteslen + "len:" + len);
@@ -435,12 +436,18 @@ public class AudioMainActivity2 extends Activity implements
                             System.arraycopy(buffer, 0, currentbytes, oldByteslen, len);
                             splitByte(currentbytes);
                         } else {
-                            if (tmpbytes.size() == 0 && len > 0) {
-                                byte[] temp = new byte[len];
-                                System.arraycopy(buffer, 0, temp, 0, len);
-
-                                splitByte(temp);
+                            if(startBuffer!=null &&startBuffer.length>0) {
+                                mAudioDecoder.decode(startBuffer, startBuffer.length);
+                                startBuffer = null;
                             }
+
+                                if (tmpbytes.size() == 0 && len > 0) {
+                                    byte[] temp = new byte[len];
+                                    System.arraycopy(buffer, 0, temp, 0, len);
+
+                                    splitByte(temp);
+                                }
+
 
                         }
 
@@ -463,29 +470,6 @@ public class AudioMainActivity2 extends Activity implements
 //
 //                    }
             }
-        }
-    }
-
-    /**
-     * MediaPlayer播放
-     * */
-    private void mediaPlayerPlay(String path){
-        /* 获得MeidaPlayer对象 */
-        MediaPlayer mediaPlayer = new MediaPlayer();
-
-        /* 得到文件路径 *//* 注：文件存放在SD卡的根目录，一定要进行prepare()方法，使硬件进行准备 */
-        File file = new File(Environment.getExternalStorageDirectory(),path);
-
-        try{
-                /* 为MediaPlayer 设置数据源 */
-            mediaPlayer.setDataSource(file.getAbsolutePath());
-
-                /* 准备 */
-            mediaPlayer.prepare();
-            mediaPlayer.start();
-
-        }catch(Exception ex){
-            ex.printStackTrace();
         }
     }
 

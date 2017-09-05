@@ -36,7 +36,6 @@ public class AudioDecoder {
     private MediaCodec mMediaCodec;
     private OnAudioDecodedListener mAudioDecodedListener;
     private boolean mIsOpened = false;
-    private boolean mIsFirstFrame = true;
 
     public interface OnAudioDecodedListener {
         void onFrameDecoded(byte[] decoded, long presentationTimeUs);
@@ -103,7 +102,8 @@ public class AudioDecoder {
 
         try {
             ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-            int inputBufferIndex = mMediaCodec.dequeueInputBuffer(-1);
+
+            int inputBufferIndex = mMediaCodec.dequeueInputBuffer(1000);
             if (inputBufferIndex >= 0) {
                 ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
                 inputBuffer.clear();
