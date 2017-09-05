@@ -3,6 +3,7 @@ package com.commlibary.http.okHttp;
 
 import android.app.Activity;
 import android.app.Fragment;
+import android.util.Log;
 
 import com.commlibary.http.request.BaseRequest;
 import com.commlibary.http.request.Parser;
@@ -11,6 +12,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import okhttp3.Headers;
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.Request;
@@ -100,7 +102,11 @@ public class OkHttpBaseRequest implements BaseRequest {
                         RequestBody requestBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"),mBody);
                         requestBuilder.method(mMethod,requestBody);
                     }
+                    if(!mHeaders.isEmpty()){
+                        requestBuilder.headers(Headers.of(mHeaders));
+                    }
                 }
+                Log.e("请求参数:",mUrl+"参数:"+mBody);
                 Request request = requestBuilder.build();
                 try {
                     Response response = mClient.getHttpClient().newCall(request).execute();

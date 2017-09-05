@@ -1,6 +1,8 @@
 package com.commlibary.http.request;
 
 
+import android.util.Log;
+
 import com.commlibary.utils.Gsons;
 import com.google.gson.Gson;
 
@@ -16,6 +18,7 @@ public class GsonParser<T> implements Parser<T> {
     }
     @Override
     public T parseResponse(String response) {
+        Log.e("返回值:",response);
         return mGson.fromJson(response,type);
     }
 }

@@ -31,6 +31,7 @@ public class HttpClient {
                     .connectTimeout(VALUE_DEFAULT_TIME_OUT, TimeUnit.MILLISECONDS)//连接超时
                     .readTimeout(VALUE_DEFAULT_TIME_OUT, TimeUnit.MILLISECONDS)//读取超时
                     .writeTimeout(VALUE_DEFAULT_TIME_OUT, TimeUnit.MILLISECONDS)//写入超时
+                    .retryOnConnectionFailure(false)
                     .build();
         return httpClient;
     }

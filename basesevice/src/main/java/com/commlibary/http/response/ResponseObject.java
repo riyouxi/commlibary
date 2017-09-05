@@ -5,21 +5,21 @@ import com.google.gson.annotations.SerializedName;
 
 public class ResponseObject<T> {
     @SerializedName("status")
-    private int status;
+    private int code;
     private String message;
-    private T content;
+    private T result;
 
     /**
      * 返回状态码
      *
      * @return
      */
-    public int getStatus() {
-        return status;
+    public int getCode() {
+        return code;
     }
 
-    public void setStatus(int status) {
-        this.status = status;
+    public void setCode(int code) {
+        this.code = code;
     }
 
     /**
@@ -40,33 +40,19 @@ public class ResponseObject<T> {
      *
      * @return
      */
-    public T getContent() {
-        return content;
+
+    public T getResult() {
+        return result;
     }
 
-    public void setContent(T content) {
-        this.content = content;
+    public void setResult(T result) {
+        this.result = result;
     }
 
     /**
      * 操作成功
      */
     public static final int OK = 0;
-
-    /**
-     * 未知错误[UNKNOWN ERROR]
-     */
-    public static final int UNKNOWN_ERROR = 100;
-
-    /**
-     * 服务器内部错误
-     */
-    public static final int SERVER_ERROR = 101;
-
-    /**
-     * 服务器内部异常
-     */
-    public static final int SERVER_EXCEPTION = 101;
 
 
     /**
@@ -79,6 +65,6 @@ public class ResponseObject<T> {
         if (obj == null) {
             return false;
         }
-        return ResponseObject.OK == obj.getStatus();
+        return ResponseObject.OK == obj.getCode();
     }
 }
