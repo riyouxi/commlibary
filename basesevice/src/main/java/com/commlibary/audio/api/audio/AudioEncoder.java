@@ -29,7 +29,7 @@ public class AudioEncoder {
     private static final String TAG = AudioEncoder.class.getSimpleName();
 
     private static final String DEFAULT_MIME_TYPE = "audio/mp4a-latm";
-    private static final int DEFAULT_CHANNEL_NUM = 2;
+    private static final int DEFAULT_CHANNEL_NUM = 1;
     private static final int DEFAULT_SAMPLE_RATE = 44100;
     private static final int DEFAULT_BITRATE = 96000; //AAC-LC, 64 *1024 for AAC-HE
     private static final int DEFAULT_PROFILE_LEVEL = MediaCodecInfo.CodecProfileLevel.AACObjectLC;
@@ -151,6 +151,9 @@ public class AudioEncoder {
         if (!mIsOpened) {
             return null;
         }
+        byte[] chunkAudio;
+        int outBitSize;
+        int outPacketSize;
 
         try {
             ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
@@ -159,12 +162,17 @@ public class AudioEncoder {
             if (outputBufferIndex >= 0) {
                 Log.d(TAG, "encode retrieve frame  " + bufferInfo.size);
                 ByteBuffer outputBuffer = outputBuffers[outputBufferIndex];
+                outBitSize=bufferInfo.size;
+                outPacketSize=outBitSize+7;//7为ADTS头部的大小
                 outputBuffer.position(bufferInfo.offset);
                 outputBuffer.limit(bufferInfo.offset + bufferInfo.size);
+                chunkAudio = new byte[outPacketSize];
+                addADTStoPacket(chunkAudio,outPacketSize);//添加ADTS 代码后面会贴上
+                outputBuffer.get(chunkAudio, 7, outBitSize);//将编码得到的AAC数据 取出到byte[]中 偏移量offset=7 你懂得
                 byte[] frame = new byte[bufferInfo.size];
-                outputBuffer.get(frame, 0, bufferInfo.size);
+                //outputBuffer.get(frame, 0, bufferInfo.size);
                 if (mAudioEncodedListener != null) {
-                    mAudioEncodedListener.onFrameEncoded(frame, bufferInfo.presentationTimeUs);
+                    mAudioEncodedListener.onFrameEncoded(chunkAudio, bufferInfo.presentationTimeUs);
                 }
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
                 return  frame;
@@ -174,5 +182,26 @@ public class AudioEncoder {
             return null;
         }
         return null;
+    }
+
+    /**
+     * 添加ADTS头
+     * @param packet
+     * @param packetLen
+     */
+    private void addADTStoPacket(byte[] packet, int packetLen) {
+        int profile = 2; // AAC LC
+        int freqIdx = 4; // 44.1KHz
+        int chanCfg = 1; // CPE
+
+
+// fill in ADTS data
+        packet[0] = (byte) 0xFF;
+        packet[1] = (byte) 0xF9;
+        packet[2] = (byte) (((profile - 1) << 6) + (freqIdx << 2) + (chanCfg >> 2));
+        packet[3] = (byte) (((chanCfg & 3) << 6) + (packetLen >> 11));
+        packet[4] = (byte) ((packetLen & 0x7FF) >> 3);
+        packet[5] = (byte) (((packetLen & 7) << 5) + 0x1F);
+        packet[6] = (byte) 0xFC;
     }
 }
