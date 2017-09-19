@@ -23,7 +23,6 @@ import com.commlibary.audio.api.audio.AudioCapturer;
 import com.commlibary.audio.api.audio.AudioDecoder;
 import com.commlibary.audio.api.audio.AudioEncoder;
 import com.commlibary.audio.api.audio.AudioPlayer;
-import com.commlibary.audio.tester.AudioCodecTester;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -61,6 +60,7 @@ public class AudioMainActivity2 extends Activity implements
     private volatile boolean mIsTestingExit = false;
 
     private volatile boolean mReadExit = false;
+    private Speex_jni speex_jni;
 
 
     private List<byte[]> data = new ArrayList<>();
@@ -81,6 +81,9 @@ public class AudioMainActivity2 extends Activity implements
         mAudioCapturer = new AudioCapturer();
         mAudioEncoder = new AudioEncoder();
         mAudioDecoder = new AudioDecoder();
+        speex_jni = new Speex_jni();
+        speex_jni.init();
+        final int frameSize = speex_jni.getFrameSize();
 
         mAudioEncoder.setAudioEncodedListener(this);
         mAudioDecoder.setAudioDecodedListener(this);
@@ -92,9 +95,9 @@ public class AudioMainActivity2 extends Activity implements
             public void onClick(View view) {
                 mIsTestingExit = false;
                 mAudioEncoder.open();
-                fixedThreadPool.execute(mEncodeRenderRunnable);
+                //fixedThreadPool.execute(mEncodeRenderRunnable);
                 fixedThreadPool.execute(upload);
-                mAudioCapturer.startCapture();
+                mAudioCapturer.startCapture(frameSize);
                 mAudioCapturer.setOnAudioFrameCapturedListener(audioDataListener);
 
 
@@ -117,7 +120,7 @@ public class AudioMainActivity2 extends Activity implements
                 mAudioPlayer = new AudioPlayer();
                 mAudioPlayer.startPlayer();
                 mAudioDecoder.open();
-                fixedThreadPool.execute(mDecodeRenderRunnable);
+                //fixedThreadPool.execute(mDecodeRenderRunnable);
                 fixedThreadPool.execute(new AudioPlayer2());
             }
         });
@@ -141,7 +144,7 @@ public class AudioMainActivity2 extends Activity implements
                 new Thread(mEncodeRenderRunnable).start();
 
                 new Thread(mDecodeRenderRunnable).start();
-                mAudioCapturer.startCapture();
+                mAudioCapturer.startCapture(frameSize);
                 new Thread(upload).start();
                 new Thread(new AudioPlayer2()).start();
             }
@@ -213,16 +216,23 @@ public class AudioMainActivity2 extends Activity implements
 
     @Override
     public void onFrameDecoded(byte[] decoded, long presentationTimeUs) {
-        Log.e("执行播放",bytesToHexString(decoded));
-        mAudioPlayer.play(decoded, 0, decoded.length);
+//        Log.e("执行播放",bytesToHexString(decoded));
+//        mAudioPlayer.play(decoded, 0, decoded.length);
     }
 
     private AudioCapturer.OnAudioFrameCapturedListener audioDataListener = new AudioCapturer.OnAudioFrameCapturedListener(){
 
     @Override
-    public void onAudioFrameCaptured(byte[] audioData) {
+    public void onAudioFrameCaptured(short[] audioData) {
         long presentationTimeUs = (System.nanoTime()) / 1000L;
-        mAudioEncoder.encode(audioData, presentationTimeUs);
+        byte[] temp = new byte[audioData.length];
+
+        int reslut = speex_jni.encode(audioData,0,temp,audioData.length);
+        if(reslut>0){
+            data.add(temp);
+        }
+
+      //  mAudioEncoder.encode(audioData, presentationTimeUs);
     }
 
     };
@@ -230,7 +240,7 @@ public class AudioMainActivity2 extends Activity implements
 
     @Override
     public void onFrameEncoded(byte[] encoded, long presentationTimeUs) {
-        data.add(encoded);
+       // data.add(encoded);
 //        try {
 //            bos.writeInt(encoded.length);
 //            bos.write(encoded,0,encoded.length);//BufferOutputStream 将文件保存到内存卡中 *.aac
@@ -248,7 +258,7 @@ public class AudioMainActivity2 extends Activity implements
                     try {
 
                         if(socket == null){
-                            socket = new Socket("192.168.1.106", 8888);
+                            socket = new Socket("192.168.1.183", 8888);
                             socket.setSoTimeout(5000);
                         }
                         OutputStream os = socket.getOutputStream();
@@ -366,18 +376,22 @@ public class AudioMainActivity2 extends Activity implements
                         if (reslutLen == 0) {
                             fileLength = -1;
                             tmpbytes.clear();
-                            mAudioDecoder.decode(body,body.length);
-
+                           // mAudioDecoder.decode(body,body.length);
+                            short[] temp = new short[body.length];
+                            speex_jni.decode(body,temp,body.length);
+                            mAudioPlayer.play(temp,0,temp.length);
                             //splitByte(null);
                         } else {
                             if (reslutLen > 0) {
                                 fileLength = -1;
                                 tmpbytes.clear();
-                                mAudioDecoder.decode(body,body.length);
+                                short[] temp = new short[body.length];
+                                speex_jni.decode(body,temp,body.length);
+                                mAudioPlayer.play(temp,0,temp.length);
                                 System.out.println(bytesToHexString(body));
-                                byte[] temp = new byte[reslutLen];
-                                System.arraycopy(parambytes, 4 + bodyLength, temp, 0, reslutLen);
-                                splitByte(temp);
+                                byte[] temp2 = new byte[reslutLen];
+                                System.arraycopy(parambytes, 4 + bodyLength, temp2, 0, reslutLen);
+                                splitByte(temp2);
                             }
 
 
@@ -409,7 +423,7 @@ public class AudioMainActivity2 extends Activity implements
         public void run() {
             try {
                 if (socket == null) {
-                    socket = new Socket("192.168.1.106", 8888);
+                    socket = new Socket("192.168.1.183", 8888);
                     socket.setSoTimeout(5000);
 
                 }
@@ -437,7 +451,7 @@ public class AudioMainActivity2 extends Activity implements
                             splitByte(currentbytes);
                         } else {
                             if(startBuffer!=null &&startBuffer.length>0) {
-                                mAudioDecoder.decode(startBuffer, startBuffer.length);
+                               // mAudioDecoder.decode(startBuffer, startBuffer.length);
                                 startBuffer = null;
                             }
 

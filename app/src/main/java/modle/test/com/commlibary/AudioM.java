@@ -185,7 +185,7 @@ public class AudioM {
                 //清空缓存
                 outputBuffer.clear();
                 //播放解码后的数据
-                mPlayer.play(outData, 0, info.size);
+              //  mPlayer.play(outData, 0, info.size);
                 //释放已经解码的buffer
                 mediaDecode.releaseOutputBuffer(outputBufferIndex, false);
                 //解码未解完的数据
@@ -230,7 +230,7 @@ public class AudioM {
             chunkPCM = new byte[decodeBufferInfo.size];//BufferInfo内定义了此数据块的大小
             outputBuffer.get(chunkPCM);//将Buffer内的数据取出到字节数组中
             outputBuffer.clear();//数据取出后一定记得清空此Buffer MediaCodec是循环使用这些Buffer的，不清空下次会得到同样的数据
-            mPlayer.play(chunkPCM,0,chunkPCM.length);
+            //mPlayer.play(chunkPCM,0,chunkPCM.length);
             mediaDecode.releaseOutputBuffer(outputIndex, false);//此操作一定要做，不然MediaCodec用完所有的Buffer后 将不能向外输出数据
             outputIndex = mediaDecode.dequeueOutputBuffer(decodeBufferInfo, 10000);//再次获取数据，如果没有数据输出则outputIndex=-1 循环结束
         }

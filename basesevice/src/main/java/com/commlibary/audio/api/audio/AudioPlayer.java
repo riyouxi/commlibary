@@ -76,7 +76,7 @@ public class AudioPlayer {
         Log.i(TAG, "Stop audio player success !");
     }
 
-    public boolean play(byte[] audioData, int offsetInBytes, int sizeInBytes) {
+    public boolean play(short[] audioData, int offsetInBytes, int sizeInBytes) {
         if (!mIsPlayStarted) {
             Log.e(TAG, "Player not started !");
             return false;

@@ -10,7 +10,7 @@ import com.commlibary.audio.api.wav.WavFileWriter;
 
 import java.io.IOException;
 
-public class AudioCaptureTester extends Tester implements AudioCapturer.OnAudioFrameCapturedListener {
+public class AudioCaptureTester extends Tester  {
 
     private static final String DEFAULT_TEST_FILE = Environment.getExternalStorageDirectory() + "/test.wav";
 
@@ -27,7 +27,7 @@ public class AudioCaptureTester extends Tester implements AudioCapturer.OnAudioF
             e.printStackTrace();
             return false;
         }
-        mAudioCapturer.setOnAudioFrameCapturedListener(this);
+        //mAudioCapturer.setOnAudioFrameCapturedListener(this);
         return mAudioCapturer.startCapture(MediaRecorder.AudioSource.MIC, 44100, AudioFormat.CHANNEL_IN_MONO,
                 AudioFormat.ENCODING_PCM_16BIT);
     }
@@ -44,8 +44,4 @@ public class AudioCaptureTester extends Tester implements AudioCapturer.OnAudioF
         return true;
     }
 
-    @Override
-    public void onAudioFrameCaptured(byte[] audioData) {
-        mWavFileWriter.writeData(audioData, 0, audioData.length);
-    }
 }

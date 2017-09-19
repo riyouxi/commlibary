@@ -202,6 +202,7 @@ public class Test {
             		if(tmpbytes.size() == 0 &&len >0){
             			byte[] temp = new byte[len];
             			System.arraycopy(buffer, 0, temp, 0, len);
+                        System.out.println(bytesToHexString(temp));
             			splitByte(temp);
             		}
             		
@@ -319,10 +320,10 @@ public class Test {
         for (int i = 0; i < src.length; i++) {
             int v = src[i] & 0xFF;
             String hv = Integer.toHexString(v);
-            if (hv.length() < 2) {
-                stringBuilder.append(0);
-            }
-            stringBuilder.append(hv);
+//            if (hv.length() < 2) {
+//                stringBuilder.append(0);
+//            }
+            stringBuilder.append(src[i]);
         }
         return stringBuilder.toString();
     }

@@ -28,7 +28,7 @@ public class AudioCapturer {
     private static final int DEFAULT_DATA_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
 
     // Make sure the sample size is the same in different devices
-    private static final int SAMPLES_PER_FRAME = 1024;
+    private static int SAMPLES_PER_FRAME = 1024 *2;
 
     private AudioRecord mAudioRecord;
 
@@ -39,7 +39,7 @@ public class AudioCapturer {
     private OnAudioFrameCapturedListener mAudioFrameCapturedListener;
 
     public interface OnAudioFrameCapturedListener {
-        void onAudioFrameCaptured(byte[] audioData);
+        void onAudioFrameCaptured(short[] audioData);
     }	
 
     public boolean isCaptureStarted() {		
@@ -50,8 +50,14 @@ public class AudioCapturer {
         mAudioFrameCapturedListener = listener;
     }
 
-    public boolean startCapture() {
+
+    public boolean startCapture(int frameSise) {
+        SAMPLES_PER_FRAME = frameSise;
         return startCapture(DEFAULT_SOURCE, DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_CONFIG, DEFAULT_DATA_FORMAT);
+    }
+
+    public void setFrameSize(int size){
+        SAMPLES_PER_FRAME = size;
     }
 
     public boolean startCapture(int audioSource, int sampleRateInHz, int channelConfig, int audioFormat) {
@@ -59,7 +65,6 @@ public class AudioCapturer {
             Log.e(TAG, "Capture already started !");
             return false;
         }
-
         int minBufferSize = AudioRecord.getMinBufferSize(sampleRateInHz, channelConfig, audioFormat);
         if (minBufferSize == AudioRecord.ERROR_BAD_VALUE) {
             Log.e(TAG, "Invalid parameter !");
@@ -114,7 +119,7 @@ public class AudioCapturer {
         @Override
         public void run() {
             while (!mIsLoopExit) {
-                byte[] buffer = new byte[SAMPLES_PER_FRAME * 2];
+                short[] buffer = new short[SAMPLES_PER_FRAME ];
                 int ret = mAudioRecord.read(buffer, 0, buffer.length);
                 if (ret == AudioRecord.ERROR_INVALID_OPERATION) {
                     Log.e(TAG, "Error ERROR_INVALID_OPERATION");
@@ -122,9 +127,11 @@ public class AudioCapturer {
                     Log.e(TAG, "Error ERROR_BAD_VALUE");
                 } else {
                     Log.d("TAG", "Audio captured: " + buffer.length);
-//                    calc1(buffer,0,ret);
+                   // calc1(buffer,0,ret);
                     if (mAudioFrameCapturedListener != null) {
-                        mAudioFrameCapturedListener.onAudioFrameCaptured(buffer);
+                        short[] temp = new short[ret];
+                        System.arraycopy(buffer,0,temp,0,ret);
+                        mAudioFrameCapturedListener.onAudioFrameCaptured(temp);
                     }
                 }
             }

@@ -48,7 +48,7 @@ public class AudioPlayerTester extends Tester {
         public void run() {
             byte[] buffer = new byte[SAMPLES_PER_FRAME * 2];
             while (!mIsTestingExit && mWavFileReader.readData(buffer, 0, buffer.length) > 0) {
-                mAudioPlayer.play(buffer, 0, buffer.length);
+                //mAudioPlayer.play(buffer, 0, buffer.length);
             }
             mAudioPlayer.stopPlayer();
             try {

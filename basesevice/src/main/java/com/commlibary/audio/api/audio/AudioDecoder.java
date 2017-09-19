@@ -126,7 +126,7 @@ public class AudioDecoder {
         try {
             ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
             MediaCodec.BufferInfo bufferInfo = new MediaCodec.BufferInfo();
-            int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 1000);
+            int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(bufferInfo, 10000);
 
             if (outputBufferIndex >= 0) {
                 Log.d(TAG, "decode retrieve frame " + bufferInfo.size);

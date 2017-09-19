@@ -3,7 +3,12 @@ package com.commlibary.utils;
 import android.R.integer;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Observable;
 
+import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
+import rx.functions.Action1;
+import rx.schedulers.Schedulers;
 
 
 /**
@@ -41,6 +46,23 @@ public class SPUtil {
 		}
 
 		editor.apply();
+
+//		 rx.Observable.create(new rx.Observable.OnSubscribe<String>() {
+//			@Override
+//			public void call(Subscriber<? super String> subscriber) {
+//				//耗时操作
+//				//执行完成
+//				subscriber.onNext("");
+//
+//			}
+//		}).subscribeOn(Schedulers.io())//生产事件在io
+//			.observeOn(AndroidSchedulers.mainThread()).subscribe(new Action1<String>() {
+//				@Override
+//				public void call(String s) {
+//
+//				}
+//			});
+
 	}
 	
 	/**

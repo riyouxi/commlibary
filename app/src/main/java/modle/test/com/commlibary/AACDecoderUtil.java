@@ -114,7 +114,7 @@ public class AACDecoderUtil {
                 //清空缓存
                 outputBuffer.clear();
                 //播放解码后的数据
-                mAudioPalyer.play(outData, 0, info.size);
+              //  mAudioPalyer.play(outData, 0, info.size);
                 //释放已经解码的buffer
                 mDecoder.releaseOutputBuffer(outputBufferIndex, false);
                 //解码未解完的数据
