@@ -258,7 +258,7 @@ public class AudioMainActivity2 extends Activity implements
                     try {
 
                         if(socket == null){
-                            socket = new Socket("192.168.1.183", 8888);
+                            socket = new Socket("192.168.1.187", 8888);
                             socket.setSoTimeout(5000);
                         }
                         OutputStream os = socket.getOutputStream();
@@ -423,7 +423,7 @@ public class AudioMainActivity2 extends Activity implements
         public void run() {
             try {
                 if (socket == null) {
-                    socket = new Socket("192.168.1.183", 8888);
+                    socket = new Socket("192.168.1.187", 8888);
                     socket.setSoTimeout(5000);
 
                 }

@@ -24,6 +24,7 @@ extern "C"
 JNIEXPORT jint JNICALL Java_modle_test_com_commlibary_Speex_1jni_open
         (JNIEnv *env, jobject obj, jint compression) {
     int tmp;
+    //计算采样时长，即是10毫秒，还是20毫秒，还是30毫秒
     int nSampleTimeLong = (160 / (8000 / 100)) * 10;
 
     if (codec_open++ != 0)
@@ -36,26 +37,27 @@ JNIEXPORT jint JNICALL Java_modle_test_com_commlibary_Speex_1jni_open
     m_st = speex_preprocess_state_init(160, 8000);
 
     int denoise = 1;
+    //噪声衰减db（负数，负值越小，降噪强度越大，同时失真越大）
     int noiseSuppress = -10;
     m_st = speex_preprocess_state_init(160 * (nSampleTimeLong / 10), 8000);
-    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_DENOISE, &denoise); //����
+    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_DENOISE, &denoise);  //降噪
     int code = speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
-                                    &noiseSuppress); //�����������˥��
+                                    &noiseSuppress);  //设置噪声最大衰减
     int agc = 1;
     int q = 24000;
-    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC, &agc);//����
+    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC, &agc);//增益
     speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC_LEVEL, &q);
 
     int vad = 1;
     int vadProbStart = 80;
     int vadProbContinue = 65;
-    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_VAD, &vad); //�������
+    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_VAD, &vad); //静音检测
     speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_PROB_START, &vadProbStart); //Set
 
 
     s_es = speex_echo_state_init(160, 8000);
     int __sample_rate = 4000;
-    speex_echo_ctl(s_es, SPEEX_ECHO_SET_SAMPLING_RATE, &__sample_rate);//��������
+    speex_echo_ctl(s_es, SPEEX_ECHO_SET_SAMPLING_RATE, &__sample_rate);//回音消除
     speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_ECHO_STATE, s_es);
     //=========================================
 
