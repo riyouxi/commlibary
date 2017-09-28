@@ -38,15 +38,15 @@ JNIEXPORT jint JNICALL Java_modle_test_com_commlibary_Speex_1jni_open
 
     int denoise = 1;
     //噪声衰减db（负数，负值越小，降噪强度越大，同时失真越大）
-    int noiseSuppress = -10;
+    int noiseSuppress = -25;
     m_st = speex_preprocess_state_init(160 * (nSampleTimeLong / 10), 8000);
     speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_DENOISE, &denoise);  //降噪
     int code = speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
                                     &noiseSuppress);  //设置噪声最大衰减
     int agc = 1;
-    int q = 24000;
-    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC, &agc);//增益
-    speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC_LEVEL, &q);
+    int q = 1000;
+    //speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC, &agc);//增益
+   // speex_preprocess_ctl(m_st, SPEEX_PREPROCESS_SET_AGC_LEVEL, &q);
 
     int vad = 1;
     int vadProbStart = 80;
